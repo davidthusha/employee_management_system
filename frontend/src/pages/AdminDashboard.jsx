@@ -1,3 +1,6 @@
+import { Link } from "react-router-dom";
+import "../CSS/AdminDashboard.css";
+
 function AdminDashboard() {
 
     const user = JSON.parse(
@@ -12,23 +15,96 @@ function AdminDashboard() {
     };
 
     return (
-        <div>
+        <div className="dashboard">
 
-            <h1>Employee Management System</h1>
+            {/* Sidebar */}
 
-            <h2>Admin Dashboard</h2>
+            <aside className="sidebar">
 
-            <p>
-                Welcome, {user?.username}
-            </p>
+                <div className="sidebar-logo">
+                    Employee Management
+                </div>
 
-            <p>
-                Role: {user?.role}
-            </p>
+                <nav className="sidebar-menu">
 
-            <button onClick={logout}>
-                Logout
-            </button>
+                    <Link
+                        to="/dashboard"
+                        className="active"
+                    >
+                        Dashboard
+                    </Link>
+
+                    <Link to="/employees">
+                        Employees
+                    </Link>
+
+                    <Link to="/departments">
+                        Departments
+                    </Link>
+
+                    <Link to="/attendance">
+                        Attendance
+                    </Link>
+
+                    <Link to="/reports">
+                        Reports
+                    </Link>
+
+                </nav>
+
+            </aside>
+
+            {/* Main */}
+
+            <main className="dashboard-main">
+
+                <header className="dashboard-header">
+
+                    <h2>Dashboard</h2>
+
+                    <div className="user-section">
+
+                        <span className="user-name">
+                            {user?.username}
+                        </span>
+
+                        <button
+                            className="logout-button"
+                            onClick={logout}
+                        >
+                            Logout
+                        </button>
+
+                    </div>
+
+                </header>
+
+                <section className="dashboard-content">
+
+                    <h1>Welcome to the Dashboard</h1>
+
+                    <div className="dashboard-cards">
+
+                        <div className="dashboard-card">
+                            <h3>Total Employees</h3>
+                            <p>0</p>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3>Departments</h3>
+                            <p>0</p>
+                        </div>
+
+                        <div className="dashboard-card">
+                            <h3>Today's Attendance</h3>
+                            <p>0</p>
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </main>
 
         </div>
     );

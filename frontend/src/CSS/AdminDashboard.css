@@ -1,0 +1,123 @@
+.dashboard {
+    min-height: 100vh;
+    display: flex;
+    background: #f5f7fb;
+}
+
+/* Sidebar */
+
+.sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: #111827;
+    color: white;
+    padding: 25px 15px;
+}
+
+.sidebar-logo {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 0 10px 30px;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-menu a {
+    padding: 12px;
+    border-radius: 6px;
+    color: #d1d5db;
+    transition: 0.2s;
+}
+
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+    background: #2563eb;
+    color: white;
+}
+
+/* Main content */
+
+.dashboard-main {
+    flex: 1;
+}
+
+/* Header */
+
+.dashboard-header {
+    height: 70px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 30px;
+}
+
+.dashboard-header h2 {
+    font-size: 20px;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.logout-button {
+    border: none;
+    background: #ef4444;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+}
+
+.logout-button:hover {
+    background: #dc2626;
+}
+
+/* Content */
+
+.dashboard-content {
+    padding: 30px;
+}
+
+.dashboard-content h1 {
+    margin-bottom: 25px;
+}
+
+/* Cards */
+
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.dashboard-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+.dashboard-card h3 {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.dashboard-card p {
+    font-size: 30px;
+    font-weight: bold;
+}
