@@ -3,6 +3,7 @@ const pool = require("./config/db");
 
 const createAdmin = async () => {
     try {
+        
         const password = "Admin@123";
 
         const passwordHash = await bcrypt.hash(password, 10);
