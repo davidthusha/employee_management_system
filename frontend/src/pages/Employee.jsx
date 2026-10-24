@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import "../CSS/Employee.css";
@@ -16,24 +17,78 @@ const initialForm = {
     status: "Active"
 };
 
+const initialAccountForm = {
+    username: "",
+    password: "",
+    confirmPassword: ""
+};
+
 function Employees() {
     const [employees, setEmployees] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
+
+    // Add/edit employee popup
     const [modalOpen, setModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState(initialForm);
+
+    // Login account popup
+    const [accountEmployee, setAccountEmployee] = useState(null);
+    const [accountForm, setAccountForm] = useState(initialAccountForm);
+    const [accountSaving, setAccountSaving] = useState(false);
+    const [accountError, setAccountError] = useState("");
+
+    // Messages
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    // Load employees and normalise account status
     const loadEmployees = async () => {
         setLoading(true);
+
         try {
             const response = await api.get("/employees");
-            setEmployees(response.data);
+
+            console.log("Employees API response:", response.data);
+
+            const employeeData = response.data.map((employee) => {
+                const accountFlag = employee.has_login_account;
+
+                let hasLoginAccount = null;
+
+                if (accountFlag === 1 || accountFlag === "1" ||
+                    accountFlag === true) {
+                    hasLoginAccount = 1;
+                } else if (
+                    accountFlag === 0 ||
+                    accountFlag === "0" ||
+                    accountFlag === false
+                ) {
+                    hasLoginAccount = 0;
+                }
+
+                return {
+                    ...employee,
+                    has_login_account: hasLoginAccount
+                };
+            });
+
+            console.table(
+                employeeData.map((employee) => ({
+                    employee_code: employee.employee_code,
+                    name: `${employee.first_name} ${employee.last_name}`,
+                    has_login_account: employee.has_login_account
+                }))
+            );
+
+            setEmployees(employeeData);
+            setError("");
         } catch (err) {
+            console.error("Failed to load employees:", err);
+
             setError(
                 err.response?.data?.message ||
                 "Could not load employees. Check your login and backend."
@@ -43,6 +98,7 @@ function Employees() {
         }
     };
 
+    // Load departments
     const loadDepartments = async () => {
         try {
             const response = await api.get("/departments");
@@ -57,16 +113,19 @@ function Employees() {
         loadDepartments();
     }, []);
 
+    // Open Add Employee popup
     const openModal = () => {
         setEditingEmployee(null);
-        setForm(initialForm);
+        setForm({ ...initialForm });
         setError("");
         setSuccess("");
         setModalOpen(true);
     };
 
+    // Open Edit Employee popup
     const handleEdit = (employee) => {
         setEditingEmployee(employee);
+
         setForm({
             employee_code: employee.employee_code || "",
             first_name: employee.first_name || "",
@@ -86,39 +145,21 @@ function Employees() {
             job_title: employee.job_title || "",
             status: employee.status || "Active"
         });
+
         setError("");
         setSuccess("");
         setModalOpen(true);
     };
 
-    const handleDelete = async (employee) => {
-        const confirmed = window.confirm(
-            `Are you sure you want to delete ${employee.first_name} ${employee.last_name}?`
-        );
-
-        if (!confirmed) return;
-
-        setError("");
-        setSuccess("");
-
-        try {
-            await api.delete(`/employees/${employee.employee_id}`);
-            setSuccess("Employee deleted successfully.");
-            await loadEmployees();
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                "Failed to delete employee. Check the backend route and terminal."
-            );
-        }
-    };
-
+    // Close employee popup
     const closeModal = () => {
         if (saving) return;
+
         setModalOpen(false);
         setError("");
     };
 
+    // Handle employee form changes
     const handleChange = (event) => {
         const { name, value } = event.target;
 
@@ -128,11 +169,12 @@ function Employees() {
         }));
     };
 
+    // Add or update employee
     const handleSubmit = async (event) => {
         event.preventDefault();
+
         setError("");
         setSuccess("");
-
         setSaving(true);
 
         const payload = {
@@ -150,6 +192,7 @@ function Employees() {
                     `/employees/${editingEmployee.employee_id}`,
                     payload
                 );
+
                 setSuccess("Employee updated successfully.");
             } else {
                 await api.post("/employees", payload);
@@ -158,20 +201,159 @@ function Employees() {
 
             setModalOpen(false);
             setEditingEmployee(null);
-            setForm(initialForm);
+            setForm({ ...initialForm });
             setError("");
 
             await loadEmployees();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                `Failed to ${editingEmployee ? "update" : "add"} employee. Check the backend route and terminal.`
+                `Failed to ${
+                    editingEmployee ? "update" : "add"
+                } employee. Check the backend route and terminal.`
             );
         } finally {
             setSaving(false);
         }
     };
 
+    // Delete employee
+    const handleDelete = async (employee) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ${employee.first_name} ${employee.last_name}?`
+        );
+
+        if (!confirmed) return;
+
+        setError("");
+        setSuccess("");
+
+        try {
+            await api.delete(`/employees/${employee.employee_id}`);
+
+            setSuccess("Employee deleted successfully.");
+            await loadEmployees();
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                "Failed to delete employee."
+            );
+        }
+    };
+
+    // Open Create Login Account popup
+    const openAccountModal = (employee) => {
+        // Do not open if an account already exists.
+        if (employee.has_login_account !== 0) {
+            setSuccess(
+                employee.has_login_account === 1
+                    ? `${employee.first_name} ${employee.last_name} already has a login account.`
+                    : "Unable to verify this employee's login account status. Please refresh the page."
+            );
+            return;
+        }
+
+        setAccountEmployee(employee);
+
+        setAccountForm({
+            ...initialAccountForm,
+            username: employee.employee_code
+                ? employee.employee_code.toLowerCase()
+                : ""
+        });
+
+        setAccountError("");
+        setError("");
+        setSuccess("");
+    };
+
+    // Close Create Login Account popup
+    const closeAccountModal = () => {
+        if (accountSaving) return;
+
+        setAccountEmployee(null);
+        setAccountForm({ ...initialAccountForm });
+        setAccountError("");
+    };
+
+    // Handle login account form changes
+    const handleAccountChange = (event) => {
+        const { name, value } = event.target;
+
+        setAccountForm((previous) => ({
+            ...previous,
+            [name]: value
+        }));
+    };
+
+    // Create login account for an existing employee
+    const handleCreateAccount = async (event) => {
+        event.preventDefault();
+
+        setAccountError("");
+        setError("");
+        setSuccess("");
+
+        if (!accountEmployee) return;
+
+        const username = accountForm.username.trim();
+
+        if (username.length < 3 || username.length > 50) {
+            setAccountError(
+                "Username must contain between 3 and 50 characters."
+            );
+            return;
+        }
+
+        if (accountForm.password.length < 8) {
+            setAccountError(
+                "Password must contain at least 8 characters."
+            );
+            return;
+        }
+
+        if (accountForm.password !== accountForm.confirmPassword) {
+            setAccountError("Passwords do not match.");
+            return;
+        }
+
+        setAccountSaving(true);
+
+        try {
+            const response = await api.post(
+                "/auth/create-employee-account",
+                {
+                    employee_id: accountEmployee.employee_id,
+                    username,
+                    password: accountForm.password
+                }
+            );
+
+            const employeeName =
+                `${accountEmployee.first_name} ${accountEmployee.last_name}`;
+
+            setAccountEmployee(null);
+            setAccountForm({ ...initialAccountForm });
+            setAccountError("");
+
+            setSuccess(
+                response.data?.message ||
+                `Login account created successfully for ${employeeName}.`
+            );
+
+            // Reload the employee list and account flags.
+            await loadEmployees();
+        } catch (err) {
+            setAccountError(
+                err.response?.data?.message ||
+                "Failed to create login account. Please check your Admin login and try again."
+            );
+        } finally {
+            setAccountSaving(false);
+        }
+    };
+
+    // Search employees
     const filteredEmployees = employees.filter((employee) => {
         const query = search.toLowerCase();
 
@@ -189,6 +371,7 @@ function Employees() {
 
     return (
         <div className="page">
+            {/* Page header */}
             <div className="page-header">
                 <div>
                     <h1>Employees</h1>
@@ -196,6 +379,7 @@ function Employees() {
                 </div>
 
                 <button
+                    type="button"
                     className="primary-button"
                     onClick={openModal}
                 >
@@ -203,18 +387,21 @@ function Employees() {
                 </button>
             </div>
 
+            {/* Success message */}
             {success && (
                 <div className="success-message" role="status">
                     {success}
                 </div>
             )}
 
-            {error && !modalOpen && (
+            {/* Page error */}
+            {error && !modalOpen && !accountEmployee && (
                 <div className="error-message" role="alert">
                     {error}
                 </div>
             )}
 
+            {/* Search */}
             <div className="employee-toolbar">
                 <input
                     type="search"
@@ -224,6 +411,7 @@ function Employees() {
                 />
             </div>
 
+            {/* Employees table */}
             <div className="table-container">
                 {loading ? (
                     <p className="loading">Loading employees...</p>
@@ -252,15 +440,22 @@ function Employees() {
                                 filteredEmployees.map((employee) => (
                                     <tr key={employee.employee_id}>
                                         <td>{employee.employee_code}</td>
+
                                         <td>
                                             {employee.first_name}{" "}
                                             {employee.last_name}
                                         </td>
+
                                         <td>{employee.email}</td>
+
                                         <td>
                                             {employee.department_name || "-"}
                                         </td>
-                                        <td>{employee.job_title || "-"}</td>
+
+                                        <td>
+                                            {employee.job_title || "-"}
+                                        </td>
+
                                         <td>
                                             <span
                                                 className={`status ${
@@ -272,22 +467,45 @@ function Employees() {
                                                 {employee.status}
                                             </span>
                                         </td>
+
                                         <td className="employee-actions">
+                                            {/* Show only when the API confirms no account */}
+                                            {employee.has_login_account === 0 && (
+                                                <button
+                                                    type="button"
+                                                    className="icon-button account-icon"
+                                                    title="Create login account"
+                                                    aria-label={`Create login account for ${employee.first_name} ${employee.last_name}`}
+                                                    onClick={() =>
+                                                        openAccountModal(employee)
+                                                    }
+                                                >
+                                                    👤+
+                                                </button>
+                                            )}
+
+                                            {/* Edit */}
                                             <button
                                                 type="button"
                                                 className="icon-button edit-icon"
                                                 title="Edit employee"
                                                 aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                                                onClick={() => handleEdit(employee)}
+                                                onClick={() =>
+                                                    handleEdit(employee)
+                                                }
                                             >
                                                 ✏️
                                             </button>
+
+                                            {/* Delete */}
                                             <button
                                                 type="button"
                                                 className="icon-button delete-icon"
                                                 title="Delete employee"
                                                 aria-label={`Delete ${employee.first_name} ${employee.last_name}`}
-                                                onClick={() => handleDelete(employee)}
+                                                onClick={() =>
+                                                    handleDelete(employee)
+                                                }
                                             >
                                                 🗑️
                                             </button>
@@ -300,6 +518,7 @@ function Employees() {
                 )}
             </div>
 
+            {/* Add/Edit Employee popup */}
             {modalOpen && (
                 <div
                     className="modal-overlay"
@@ -318,8 +537,11 @@ function Employees() {
                         <div className="modal-header">
                             <div>
                                 <h2 id="employee-modal-title">
-                                    {editingEmployee ? "Edit Employee" : "Add Employee"}
+                                    {editingEmployee
+                                        ? "Edit Employee"
+                                        : "Add Employee"}
                                 </h2>
+
                                 <p>
                                     {editingEmployee
                                         ? "Update the employee's details below."
@@ -437,6 +659,7 @@ function Employees() {
                                         <option value="">
                                             No department
                                         </option>
+
                                         {departments.map((department) => (
                                             <option
                                                 key={department.department_id}
@@ -525,6 +748,136 @@ function Employees() {
                                         : editingEmployee
                                             ? "Update Employee"
                                             : "Save Employee"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Login Account popup */}
+            {accountEmployee && (
+                <div
+                    className="modal-overlay"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            closeAccountModal();
+                        }
+                    }}
+                >
+                    <div
+                        className="employee-modal account-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="account-modal-title"
+                    >
+                        <div className="modal-header">
+                            <div>
+                                <h2 id="account-modal-title">
+                                    Create Login Account
+                                </h2>
+
+                                <p>
+                                    Create login credentials for{" "}
+                                    <strong>
+                                        {accountEmployee.first_name}{" "}
+                                        {accountEmployee.last_name}
+                                    </strong>.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="modal-close"
+                                onClick={closeAccountModal}
+                                disabled={accountSaving}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateAccount}>
+                            <div className="employee-form-grid">
+                                <div className="form-field full-width">
+                                    <label htmlFor="account-username">
+                                        Username *
+                                    </label>
+
+                                    <input
+                                        id="account-username"
+                                        name="username"
+                                        value={accountForm.username}
+                                        onChange={handleAccountChange}
+                                        placeholder="e.g. emp002"
+                                        minLength={3}
+                                        maxLength={50}
+                                        autoComplete="username"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-field">
+                                    <label htmlFor="account-password">
+                                        Temporary Password *
+                                    </label>
+
+                                    <input
+                                        id="account-password"
+                                        name="password"
+                                        type="password"
+                                        value={accountForm.password}
+                                        onChange={handleAccountChange}
+                                        placeholder="At least 8 characters"
+                                        minLength={8}
+                                        autoComplete="new-password"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-field">
+                                    <label htmlFor="account-confirm-password">
+                                        Confirm Password *
+                                    </label>
+
+                                    <input
+                                        id="account-confirm-password"
+                                        name="confirmPassword"
+                                        type="password"
+                                        value={accountForm.confirmPassword}
+                                        onChange={handleAccountChange}
+                                        placeholder="Re-enter password"
+                                        minLength={8}
+                                        autoComplete="new-password"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {accountError && (
+                                <div className="error-message" role="alert">
+                                    {accountError}
+                                </div>
+                            )}
+
+                            <div className="modal-actions">
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={closeAccountModal}
+                                    disabled={accountSaving}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    className="primary-button"
+                                    disabled={accountSaving}
+                                >
+                                    {accountSaving
+                                        ? "Creating..."
+                                        : "Create Account"}
                                 </button>
                             </div>
                         </form>

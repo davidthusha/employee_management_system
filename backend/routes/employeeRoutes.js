@@ -1,21 +1,30 @@
-const express = require("express");
 
+const express = require("express");
+const router = express.Router();
 
 const {
     getEmployees,
     getEmployeeById,
     createEmployee,
     updateEmployee,
-    deleteEmployee
+    deleteEmployee,
+    getMyEmployee
 } = require("../controllers/employeeController");
-
-const router = express.Router();
 
 const {
     authenticateToken,
     authorizeRoles
 } = require("../middleware/authMiddleware");
 
+// Employee: retrieve only their own employee record
+router.get(
+    "/me",
+    authenticateToken,
+    authorizeRoles("Employee"),
+    getMyEmployee
+);
+
+// Admin: retrieve all employees
 router.get(
     "/",
     authenticateToken,
@@ -23,6 +32,7 @@ router.get(
     getEmployees
 );
 
+// Existing employee management routes
 router.get(
     "/:id",
     authenticateToken,

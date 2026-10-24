@@ -184,6 +184,11 @@
     background: #fef3c7;
 }
 
+
+.job-title-icon {
+    background: #fce7f3;
+}
+
 .dashboard-card h3 {
     margin: 0 0 10px;
     color: #6b7280;

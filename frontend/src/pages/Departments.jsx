@@ -194,13 +194,6 @@ function Departments() {
                 </div>
             )}
 
-            <div className="departments-summary">
-                <div className="department-summary-card">
-                    <span>Total Departments</span>
-                    <strong>{departments.length}</strong>
-                </div>
-            </div>
-
             <div className="departments-table-card">
                 <div className="departments-toolbar">
                     <input

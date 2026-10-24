@@ -1,3 +1,4 @@
+
 const pool = require("../config/db");
 
 // GET all employees
@@ -18,7 +19,16 @@ const getEmployees = async (req, res) => {
                 d.department_name,
                 e.job_title,
                 e.status,
-                e.created_at
+                e.created_at,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM users u
+                        WHERE u.employee_id = e.employee_id
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS has_login_account
             FROM employees e
             LEFT JOIN departments d
                 ON e.department_id = d.department_id
@@ -28,7 +38,7 @@ const getEmployees = async (req, res) => {
         res.json(employees);
 
     } catch (error) {
-        console.error(error);
+        console.error("Error retrieving employees:", error);
 
         res.status(500).json({
             message: "Failed to retrieve employees"
@@ -75,7 +85,7 @@ const getEmployeeById = async (req, res) => {
         res.json(employees[0]);
 
     } catch (error) {
-        console.error(error);
+        console.error("Error retrieving employee:", error);
 
         res.status(500).json({
             message: "Failed to retrieve employee"
@@ -137,7 +147,7 @@ const createEmployee = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error creating employee:", error);
 
         res.status(500).json({
             message: "Failed to create employee",
@@ -210,7 +220,7 @@ const updateEmployee = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error updating employee:", error);
 
         res.status(500).json({
             message: "Failed to update employee",
@@ -241,7 +251,7 @@ const deleteEmployee = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Error deleting employee:", error);
 
         res.status(500).json({
             message: "Failed to delete employee",
@@ -251,10 +261,55 @@ const deleteEmployee = async (req, res) => {
 };
 
 
+const getMyEmployee = async (req, res) => {
+    try {
+        const employeeId = req.user?.employee_id;
+
+        if (!employeeId) {
+            return res.status(403).json({
+                message: "This account is not linked to an employee"
+            });
+        }
+
+        const [employees] = await pool.query(
+            `SELECT
+                e.employee_id,
+                e.employee_code,
+                e.first_name,
+                e.last_name,
+                e.department_id,
+                d.department_name,
+                e.job_title,
+                e.status
+             FROM employees e
+             LEFT JOIN departments d
+                ON e.department_id = d.department_id
+             WHERE e.employee_id = ?
+             LIMIT 1`,
+            [employeeId]
+        );
+
+        if (employees.length === 0) {
+            return res.status(404).json({
+                message: "Employee record not found"
+            });
+        }
+
+        return res.json(employees[0]);
+    } catch (error) {
+        console.error("Get my employee error:", error);
+
+        return res.status(500).json({
+            message: "Failed to retrieve employee details"
+        });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
     createEmployee,
     updateEmployee,
-    deleteEmployee
+    deleteEmployee,
+    getMyEmployee
 };
