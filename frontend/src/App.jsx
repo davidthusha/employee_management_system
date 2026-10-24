@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import Employees from "./pages/Employee";
+import Departments from "./pages/Departments";
 
 function App() {
     return (
@@ -38,6 +39,18 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+
+                <Route
+                    path="/departments"
+                    element={
+                        <ProtectedRoute>
+                            <AdminDashboard>
+                                <Departments />
+                            </AdminDashboard>
+                        </ProtectedRoute>
+                    }
+                />
+
             </Routes>
         </BrowserRouter>
     );

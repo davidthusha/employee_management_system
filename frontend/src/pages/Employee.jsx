@@ -349,6 +349,7 @@ function Employees() {
                                         name="employee_code"
                                         value={form.employee_code}
                                         onChange={handleChange}
+                                        placeholder="e.g. EMP004"
                                         required
                                         maxLength={20}
                                     />
@@ -361,6 +362,7 @@ function Employees() {
                                         name="job_title"
                                         value={form.job_title}
                                         onChange={handleChange}
+                                        placeholder="e.g. Software Engineer"
                                         maxLength={100}
                                     />
                                 </div>
@@ -374,6 +376,7 @@ function Employees() {
                                         name="first_name"
                                         value={form.first_name}
                                         onChange={handleChange}
+                                        placeholder="Enter first name"
                                         required
                                         maxLength={50}
                                     />
@@ -388,6 +391,7 @@ function Employees() {
                                         name="last_name"
                                         value={form.last_name}
                                         onChange={handleChange}
+                                        placeholder="Enter last name"
                                         required
                                         maxLength={50}
                                     />
@@ -401,6 +405,7 @@ function Employees() {
                                         type="email"
                                         value={form.email}
                                         onChange={handleChange}
+                                        placeholder="e.g. employee@company.com"
                                         required
                                         maxLength={100}
                                     />
@@ -414,6 +419,7 @@ function Employees() {
                                         type="tel"
                                         value={form.phone}
                                         onChange={handleChange}
+                                        placeholder="e.g. 0771234567"
                                         maxLength={20}
                                     />
                                 </div>
@@ -487,6 +493,7 @@ function Employees() {
                                         value={form.address}
                                         onChange={handleChange}
                                         rows={2}
+                                        placeholder="Enter employee address..."
                                         maxLength={255}
                                     />
                                 </div>
