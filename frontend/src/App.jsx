@@ -1,3 +1,4 @@
+
 import {
     BrowserRouter,
     Routes,
@@ -5,17 +6,14 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Login";
-// import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
+import Employees from "./pages/Employee";
 
 function App() {
-
     return (
         <BrowserRouter>
-
             <Routes>
-
                 <Route
                     path="/"
                     element={<Login />}
@@ -30,8 +28,17 @@ function App() {
                     }
                 />
 
+                <Route
+                    path="/employees"
+                    element={
+                        <ProtectedRoute>
+                            <AdminDashboard>
+                                <Employees />
+                            </AdminDashboard>
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
-
         </BrowserRouter>
     );
 }
