@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../services/api";
@@ -98,7 +97,8 @@ function EmployeeDashboard() {
     const currentPage = {
         "/employee-portal": "Dashboard",
         "/employee-profile": "My Profile",
-        "/employee-attendance": "My Attendance"
+        "/employee-attendance": "My Attendance",
+        "/employee-leave": "Leave Management"
     }[location.pathname] || "Dashboard";
 
     return (
@@ -140,6 +140,17 @@ function EmployeeDashboard() {
                         }
                     >
                         My Attendance
+                    </Link>
+
+                    <Link
+                        to="/employee-leave"
+                        className={
+                            location.pathname === "/employee-leave"
+                                ? "active"
+                                : ""
+                        }
+                    >
+                        Leave Management
                     </Link>
                 </nav>
             </aside>

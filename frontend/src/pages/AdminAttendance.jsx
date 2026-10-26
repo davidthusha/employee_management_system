@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -18,6 +17,7 @@ const NAVIGATION = [
     { label: "Employees", path: "/employees" },
     { label: "Departments", path: "/departments" },
     { label: "Attendance", path: "/attendance" },
+    { label: "Leave Management", path: "/admin-leave" },
     { label: "Reports", path: "/reports" }
 ];
 
@@ -123,7 +123,6 @@ function AdminAttendance() {
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(EMPTY_FORM);
 
-    // Load employees for the employee filter and attendance form.
     const loadEmployees = useCallback(async () => {
         try {
             const response = await api.get("/employees");
@@ -139,7 +138,6 @@ function AdminAttendance() {
         }
     }, []);
 
-    // Load attendance using the selected filters.
     const loadAttendance = useCallback(async () => {
         setLoading(true);
         setError("");
@@ -148,9 +146,11 @@ function AdminAttendance() {
             const params = {};
 
             if (filters.date) params.date = filters.date;
+
             if (filters.employee_id) {
                 params.employee_id = filters.employee_id;
             }
+
             if (filters.status) params.status = filters.status;
 
             const response = await api.get("/attendance", { params });
@@ -182,7 +182,6 @@ function AdminAttendance() {
         loadAttendance();
     }, [loadAttendance]);
 
-    // Summary statistics for the currently loaded records.
     const presentCount = new Set(
         records
             .filter(record =>
@@ -229,7 +228,6 @@ function AdminAttendance() {
         });
     };
 
-    // Create a new attendance record.
     const openCreateForm = () => {
         setEditingId(null);
 
@@ -250,7 +248,6 @@ function AdminAttendance() {
         setSuccess("");
     };
 
-    // Load an existing record into the edit form.
     const openEditForm = record => {
         setEditingId(record.attendance_id);
 
@@ -280,7 +277,6 @@ function AdminAttendance() {
         }));
     };
 
-    // Save a new record or update an existing one.
     const handleSubmit = async event => {
         event.preventDefault();
 
@@ -325,7 +321,6 @@ function AdminAttendance() {
         }
     };
 
-    // Delete with confirmation.
     const handleDelete = async record => {
         const employeeName =
             `${record.first_name || ""} ${record.last_name || ""}`.trim() ||

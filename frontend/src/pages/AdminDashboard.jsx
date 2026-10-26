@@ -45,10 +45,11 @@ function AdminDashboard({ children }) {
         "/employees": "Employees",
         "/departments": "Departments",
         "/attendance": "Attendance",
+        "/admin-leave": "Leave Management",
         "/reports": "Reports"
     }[location.pathname] || "Dashboard";
 
-    // Load employee and department statistics.
+    // Load employee and department statistics only on the dashboard.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -103,7 +104,7 @@ function AdminDashboard({ children }) {
         };
     }, [location.pathname]);
 
-    // Load today's attendance using the Sri Lankan date.
+    // Load today's attendance using Sri Lankan local date.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -114,12 +115,23 @@ function AdminDashboard({ children }) {
             setAttendanceError("");
 
             try {
-                const today = new Intl.DateTimeFormat("en-CA", {
+                const parts = new Intl.DateTimeFormat("en-CA", {
                     timeZone: "Asia/Colombo",
                     year: "numeric",
                     month: "2-digit",
                     day: "2-digit"
-                }).format(new Date());
+                }).formatToParts(new Date());
+
+                const dateParts = {};
+
+                parts.forEach(part => {
+                    if (part.type !== "literal") {
+                        dateParts[part.type] = part.value;
+                    }
+                });
+
+                const today =
+                    `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 
                 const response = await api.get("/attendance", {
                     params: { date: today }
@@ -183,6 +195,8 @@ function AdminDashboard({ children }) {
 
     const recentEmployees = employees.slice(0, 5);
 
+    const isActive = path => location.pathname === path;
+
     return (
         <div className="dashboard">
             <aside className="sidebar">
@@ -193,45 +207,42 @@ function AdminDashboard({ children }) {
                 <nav className="sidebar-menu">
                     <Link
                         to="/dashboard"
-                        className={
-                            location.pathname === "/dashboard" ? "active" : ""
-                        }
+                        className={isActive("/dashboard") ? "active" : ""}
                     >
                         Dashboard
                     </Link>
 
                     <Link
                         to="/employees"
-                        className={
-                            location.pathname === "/employees" ? "active" : ""
-                        }
+                        className={isActive("/employees") ? "active" : ""}
                     >
                         Employees
                     </Link>
 
                     <Link
                         to="/departments"
-                        className={
-                            location.pathname === "/departments" ? "active" : ""
-                        }
+                        className={isActive("/departments") ? "active" : ""}
                     >
                         Departments
                     </Link>
 
                     <Link
                         to="/attendance"
-                        className={
-                            location.pathname === "/attendance" ? "active" : ""
-                        }
+                        className={isActive("/attendance") ? "active" : ""}
                     >
                         Attendance
                     </Link>
 
                     <Link
+                        to="/admin-leave"
+                        className={isActive("/admin-leave") ? "active" : ""}
+                    >
+                        Leave Management
+                    </Link>
+
+                    <Link
                         to="/reports"
-                        className={
-                            location.pathname === "/reports" ? "active" : ""
-                        }
+                        className={isActive("/reports") ? "active" : ""}
                     >
                         Reports
                     </Link>

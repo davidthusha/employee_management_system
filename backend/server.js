@@ -1,13 +1,16 @@
+
 const express = require("express");
 const cors = require("cors");
 const pool = require("./config/db");
 
 const app = express();
+
 const authRoutes = require("./routes/authRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
 
 app.use(cors());
 app.use(express.json());
@@ -26,7 +29,6 @@ app.get("/api/test-db", async (req, res) => {
             message: "Database connection successful",
             result: rows[0].result
         });
-
     } catch (error) {
         console.error("Database connection error:", error);
 
@@ -42,6 +44,7 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/leaves", leaveRoutes);
 
 const PORT = process.env.PORT || 5000;
 

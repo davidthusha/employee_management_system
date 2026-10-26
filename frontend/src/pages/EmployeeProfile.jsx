@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -294,10 +293,12 @@ function EmployeeProfile() {
 
     const displayName = getDisplayName(profile, user);
 
+    // Shared employee navigation, including Leave Management.
     const navigation = [
         { label: "Dashboard", path: "/employee-portal" },
         { label: "My Profile", path: "/employee-profile" },
-        { label: "My Attendance", path: "/employee-attendance" }
+        { label: "My Attendance", path: "/employee-attendance" },
+        { label: "Leave Management", path: "/employee-leave" }
     ];
 
     const today = new Intl.DateTimeFormat("en-CA", {

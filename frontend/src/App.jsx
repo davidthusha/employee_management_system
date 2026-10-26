@@ -15,6 +15,8 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import AdminAttendance from "./pages/AdminAttendance";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import EmployeeLeave from "./pages/EmployeeLeave";
+import AdminLeave from "./pages/AdminLeave";
 
 function App() {
     return (
@@ -90,6 +92,24 @@ function App() {
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
                             <EmployeeAttendance />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/employee-leave"
+                    element={
+                        <ProtectedRoute allowedRoles={["Employee"]}>
+                            <EmployeeLeave />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin-leave"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminLeave />
                         </ProtectedRoute>
                     }
                 />

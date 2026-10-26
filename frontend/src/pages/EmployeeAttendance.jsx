@@ -1,6 +1,5 @@
-
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../CSS/AdminDashboard.css";
 
@@ -84,6 +83,7 @@ function getDisplayName(user) {
 
 function EmployeeAttendance() {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [user, setUser] = useState({});
     const [records, setRecords] = useState([]);
@@ -151,7 +151,6 @@ function EmployeeAttendance() {
         String(todayRecord.check_out).trim() !== ""
     );
 
-    // Present includes both on-time and late arrivals.
     const countPresentDays = () =>
         records.filter(record => {
             const status = String(record.status || "").toLowerCase();
@@ -194,7 +193,6 @@ function EmployeeAttendance() {
                 err.response?.data || err.message
             );
 
-            // Reload to ensure button states reflect saved attendance.
             await loadAttendance(false);
 
             setError(
@@ -221,19 +219,48 @@ function EmployeeAttendance() {
                 </div>
 
                 <nav className="sidebar-menu">
-                    <Link to="/employee-portal">
+                    <Link
+                        to="/employee-portal"
+                        className={
+                            location.pathname === "/employee-portal"
+                                ? "active"
+                                : ""
+                        }
+                    >
                         Dashboard
                     </Link>
 
-                    <Link to="/employee-profile">
+                    <Link
+                        to="/employee-profile"
+                        className={
+                            location.pathname === "/employee-profile"
+                                ? "active"
+                                : ""
+                        }
+                    >
                         My Profile
                     </Link>
 
                     <Link
                         to="/employee-attendance"
-                        className="active"
+                        className={
+                            location.pathname === "/employee-attendance"
+                                ? "active"
+                                : ""
+                        }
                     >
                         My Attendance
+                    </Link>
+
+                    <Link
+                        to="/employee-leave"
+                        className={
+                            location.pathname === "/employee-leave"
+                                ? "active"
+                                : ""
+                        }
+                    >
+                        Leave Management
                     </Link>
                 </nav>
             </aside>
