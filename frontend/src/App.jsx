@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Employees from "./pages/Employee";
 import Departments from "./pages/Departments";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeAttendance from "./pages/EmployeeAttendance";
 
 function App() {
     return (
@@ -60,6 +61,15 @@ function App() {
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
                             <EmployeeDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/employee-attendance"
+                    element={
+                        <ProtectedRoute allowedRoles={["Employee"]}>
+                            <EmployeeAttendance />
                         </ProtectedRoute>
                     }
                 />
