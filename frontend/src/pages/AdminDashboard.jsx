@@ -1,22 +1,34 @@
 
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../CSS/AdminDashboard.css";
 
 function AdminDashboard({ children }) {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
     const location = useLocation();
+    const navigate = useNavigate();
+
+    let user = {};
+
+    try {
+        user = JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+        user = {};
+    }
 
     const [employees, setEmployees] = useState([]);
     const [departmentCount, setDepartmentCount] = useState(0);
+    const [todayAttendance, setTodayAttendance] = useState(0);
+
     const [loading, setLoading] = useState(true);
+    const [attendanceLoading, setAttendanceLoading] = useState(true);
     const [error, setError] = useState("");
+    const [attendanceError, setAttendanceError] = useState("");
 
     const logout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/";
+        navigate("/", { replace: true });
     };
 
     const currentPage = {
@@ -27,6 +39,7 @@ function AdminDashboard({ children }) {
         "/reports": "Reports"
     }[location.pathname] || "Dashboard";
 
+    // Load employee and department statistics for the dashboard.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -58,18 +71,98 @@ function AdminDashboard({ children }) {
                 );
             } catch (err) {
                 if (!cancelled) {
-                    console.error("Dashboard data error:", err);
+                    console.error(
+                        "Dashboard data error:",
+                        err.response?.data || err.message
+                    );
+
                     setError(
                         err.response?.data?.message ||
                         "Unable to load dashboard data. Please try again."
                     );
                 }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchDashboardData();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [location.pathname]);
+
+    // Load today's attendance using Sri Lanka's local date.
+    useEffect(() => {
+        if (location.pathname !== "/dashboard") return;
+
+        let cancelled = false;
+
+        const fetchTodayAttendance = async () => {
+            setAttendanceLoading(true);
+            setAttendanceError("");
+
+            try {
+                const today = new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "Asia/Colombo",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit"
+                }).format(new Date());
+
+                const response = await api.get("/attendance", {
+                    params: { date: today }
+                });
+
+                if (cancelled) return;
+
+                const records = Array.isArray(response.data)
+                    ? response.data
+                    : [];
+
+                // Count unique employees who checked in today.
+                // Late arrivals count as present too.
+                const employeeIdsPresent = new Set(
+                    records
+                        .filter(record => {
+                            const status = String(
+                                record.status || ""
+                            ).toLowerCase();
+
+                            return (
+                                Boolean(record.check_in) &&
+                                ["present", "late"].includes(status)
+                            );
+                        })
+                        .map(record => record.employee_id)
+                        .filter(id => id !== null && id !== undefined)
+                );
+
+                setTodayAttendance(employeeIdsPresent.size);
+            } catch (err) {
+                if (!cancelled) {
+                    console.error(
+                        "Today's attendance error:",
+                        err.response?.status,
+                        err.response?.data || err.message
+                    );
+
+                    setAttendanceError(
+                        err.response?.data?.message ||
+                        "Unable to load today's attendance"
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setAttendanceLoading(false);
+                }
+            }
+        };
+
+        fetchTodayAttendance();
 
         return () => {
             cancelled = true;
@@ -120,7 +213,9 @@ function AdminDashboard({ children }) {
 
                     <Link
                         to="/attendance"
-                        className={location.pathname === "/attendance" ? "active" : ""}
+                        className={
+                            location.pathname === "/attendance" ? "active" : ""
+                        }
                     >
                         Attendance
                     </Link>
@@ -146,6 +241,7 @@ function AdminDashboard({ children }) {
                         </span>
 
                         <button
+                            type="button"
                             className="logout-button"
                             onClick={logout}
                         >
@@ -177,10 +273,11 @@ function AdminDashboard({ children }) {
                                     <div className="dashboard-card-icon employees-icon">
                                         <span aria-hidden="true">👥</span>
                                     </div>
+
                                     <h3>Total Employees</h3>
-                                    <p>
-                                        {loading ? "..." : employees.length}
-                                    </p>
+
+                                    <p>{loading ? "..." : employees.length}</p>
+
                                     <span className="dashboard-card-note">
                                         All employee records
                                     </span>
@@ -190,10 +287,11 @@ function AdminDashboard({ children }) {
                                     <div className="dashboard-card-icon departments-icon">
                                         <span aria-hidden="true">🏢</span>
                                     </div>
+
                                     <h3>Departments</h3>
-                                    <p>
-                                        {loading ? "..." : departmentCount}
-                                    </p>
+
+                                    <p>{loading ? "..." : departmentCount}</p>
+
                                     <span className="dashboard-card-note">
                                         Registered departments
                                     </span>
@@ -203,10 +301,11 @@ function AdminDashboard({ children }) {
                                     <div className="dashboard-card-icon active-icon">
                                         <span aria-hidden="true">✓</span>
                                     </div>
+
                                     <h3>Active Employees</h3>
-                                    <p>
-                                        {loading ? "..." : activeEmployees}
-                                    </p>
+
+                                    <p>{loading ? "..." : activeEmployees}</p>
+
                                     <span className="dashboard-card-note">
                                         Employees with active status
                                     </span>
@@ -214,12 +313,22 @@ function AdminDashboard({ children }) {
 
                                 <div className="dashboard-card">
                                     <div className="dashboard-card-icon attendance-icon">
-                                        <span aria-hidden="true">📅</span>
+                                        <span aria-hidden="true">👥</span>
                                     </div>
+
                                     <h3>Today's Attendance</h3>
-                                    <p>—</p>
+
+                                    <p>
+                                        {attendanceLoading
+                                            ? "..."
+                                            : attendanceError
+                                                ? "—"
+                                                : todayAttendance}
+                                    </p>
+
                                     <span className="dashboard-card-note">
-                                        Attendance tracking not implemented
+                                        {attendanceError ||
+                                            "Employees who checked in today, including late arrivals"}
                                     </span>
                                 </div>
                             </div>
@@ -256,13 +365,19 @@ function AdminDashboard({ children }) {
                                         <tbody>
                                             {loading ? (
                                                 <tr>
-                                                    <td colSpan="4" className="dashboard-empty">
+                                                    <td
+                                                        colSpan="4"
+                                                        className="dashboard-empty"
+                                                    >
                                                         Loading employees...
                                                     </td>
                                                 </tr>
                                             ) : employees.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan="4" className="dashboard-empty">
+                                                    <td
+                                                        colSpan="4"
+                                                        className="dashboard-empty"
+                                                    >
                                                         No employees found.
                                                     </td>
                                                 </tr>
@@ -275,6 +390,7 @@ function AdminDashboard({ children }) {
                                                                     {employee.first_name}{" "}
                                                                     {employee.last_name}
                                                                 </strong>
+
                                                                 <span>
                                                                     {employee.employee_code}
                                                                 </span>
@@ -282,7 +398,8 @@ function AdminDashboard({ children }) {
                                                         </td>
 
                                                         <td>
-                                                            {employee.department_name || "Unassigned"}
+                                                            {employee.department_name ||
+                                                                "Unassigned"}
                                                         </td>
 
                                                         <td>
@@ -292,12 +409,15 @@ function AdminDashboard({ children }) {
                                                         <td>
                                                             <span
                                                                 className={`dashboard-status ${
-                                                                    String(employee.status || "").toLowerCase() === "active"
+                                                                    String(
+                                                                        employee.status || ""
+                                                                    ).toLowerCase() === "active"
                                                                         ? "is-active"
                                                                         : "is-inactive"
                                                                 }`}
                                                             >
-                                                                {employee.status || "Unknown"}
+                                                                {employee.status ||
+                                                                    "Unknown"}
                                                             </span>
                                                         </td>
                                                     </tr>
