@@ -26,8 +26,35 @@ const INITIAL_PASSWORD = {
 };
 
 function formatDate(value) {
-    if (!value) return "—";
+    if (!value) return "";
     return String(value).slice(0, 10);
+}
+
+function getDisplayName(profile, user) {
+    const profileName = [
+        profile?.first_name,
+        profile?.last_name
+    ]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    const userName = [
+        user?.first_name,
+        user?.last_name
+    ]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    return (
+        profileName ||
+        user?.display_name ||
+        userName ||
+        profile?.username ||
+        user?.username ||
+        "Employee"
+    );
 }
 
 function EmployeeProfile() {
@@ -35,6 +62,7 @@ function EmployeeProfile() {
     const location = useLocation();
 
     const [profile, setProfile] = useState(INITIAL_PROFILE);
+
     const [form, setForm] = useState({
         email: "",
         phone: "",
@@ -51,6 +79,14 @@ function EmployeeProfile() {
     const [profileError, setProfileError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [success, setSuccess] = useState("");
+
+    const [user, setUser] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem("user") || "{}");
+        } catch {
+            return {};
+        }
+    });
 
     useEffect(() => {
         let cancelled = false;
@@ -78,9 +114,7 @@ function EmployeeProfile() {
                     email: data.email || "",
                     phone: data.phone || "",
                     address: data.address || "",
-                    date_of_birth: formatDate(data.date_of_birth) === "—"
-                        ? ""
-                        : formatDate(data.date_of_birth)
+                    date_of_birth: formatDate(data.date_of_birth)
                 });
             } catch (error) {
                 if (cancelled) return;
@@ -163,7 +197,7 @@ function EmployeeProfile() {
                 "Your profile was updated successfully."
             );
 
-            // Reload the saved data from the server.
+            // Reload the saved profile from the server.
             const updatedResponse = await api.get("/profile");
             const updatedProfile = updatedResponse.data?.profile;
 
@@ -177,10 +211,7 @@ function EmployeeProfile() {
                     email: updatedProfile.email || "",
                     phone: updatedProfile.phone || "",
                     address: updatedProfile.address || "",
-                    date_of_birth:
-                        formatDate(updatedProfile.date_of_birth) === "—"
-                            ? ""
-                            : formatDate(updatedProfile.date_of_birth)
+                    date_of_birth: formatDate(updatedProfile.date_of_birth)
                 });
             }
         } catch (error) {
@@ -212,9 +243,7 @@ function EmployeeProfile() {
             return;
         }
 
-        if (
-            passwordForm.newPassword !== passwordForm.confirmPassword
-        ) {
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setPasswordError(
                 "The new password and confirmation do not match."
             );
@@ -237,8 +266,7 @@ function EmployeeProfile() {
 
             setPasswordForm(INITIAL_PASSWORD);
 
-            // The backend currently retains existing JWTs until expiry.
-            // Sign out so the employee signs in with the new password.
+            // Sign out so the employee can log in with the new password.
             localStorage.removeItem("token");
             localStorage.removeItem("user");
 
@@ -264,19 +292,20 @@ function EmployeeProfile() {
         }
     };
 
-    let user = {};
-
-    try {
-        user = JSON.parse(localStorage.getItem("user") || "{}");
-    } catch {
-        user = {};
-    }
+    const displayName = getDisplayName(profile, user);
 
     const navigation = [
         { label: "Dashboard", path: "/employee-portal" },
         { label: "My Profile", path: "/employee-profile" },
         { label: "My Attendance", path: "/employee-attendance" }
     ];
+
+    const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Colombo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).format(new Date());
 
     return (
         <div className="dashboard employee-profile-layout">
@@ -308,7 +337,7 @@ function EmployeeProfile() {
 
                     <div className="user-section">
                         <span className="user-name">
-                            {profile.username || user.username || "Employee"}
+                            {displayName}
                         </span>
 
                         <button
@@ -333,7 +362,10 @@ function EmployeeProfile() {
                     </div>
 
                     {success && (
-                        <div className="employee-profile-success" role="status">
+                        <div
+                            className="employee-profile-success"
+                            role="status"
+                        >
                             {success}
                         </div>
                     )}
@@ -433,10 +465,7 @@ function EmployeeProfile() {
                                             name="date_of_birth"
                                             value={form.date_of_birth}
                                             onChange={handleProfileChange}
-                                            max={new Date().toLocaleDateString(
-                                                "en-CA",
-                                                { timeZone: "Asia/Colombo" }
-                                            )}
+                                            max={today}
                                         />
                                     </label>
 

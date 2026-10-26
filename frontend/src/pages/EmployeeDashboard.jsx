@@ -4,6 +4,32 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import "../CSS/AdminDashboard.css";
 
+function getDisplayName(user, employee) {
+    const employeeFullName = [
+        employee?.first_name,
+        employee?.last_name
+    ]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    const userFullName = [
+        user?.first_name,
+        user?.last_name
+    ]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    return (
+        employeeFullName ||
+        user?.display_name ||
+        userFullName ||
+        user?.username ||
+        "Employee"
+    );
+}
+
 function EmployeeDashboard() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -67,9 +93,7 @@ function EmployeeDashboard() {
         };
     }, []);
 
-    const employeeName = employee
-        ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim()
-        : user.username || "Employee";
+    const employeeName = getDisplayName(user, employee);
 
     const currentPage = {
         "/employee-portal": "Dashboard",
@@ -126,7 +150,7 @@ function EmployeeDashboard() {
 
                     <div className="user-section">
                         <span className="user-name">
-                            {user.username || "Employee"}
+                            {employeeName}
                         </span>
 
                         <button
@@ -161,12 +185,15 @@ function EmployeeDashboard() {
                             <div className="dashboard-card-icon employees-icon">
                                 <span aria-hidden="true">👤</span>
                             </div>
+
                             <h3>Employee ID</h3>
+
                             <p style={{ fontSize: "24px" }}>
                                 {loading
                                     ? "..."
                                     : employee?.employee_code || "—"}
                             </p>
+
                             <span className="dashboard-card-note">
                                 Your employee identification
                             </span>
@@ -176,12 +203,15 @@ function EmployeeDashboard() {
                             <div className="dashboard-card-icon departments-icon">
                                 <span aria-hidden="true">🏢</span>
                             </div>
+
                             <h3>Department</h3>
+
                             <p style={{ fontSize: "22px" }}>
                                 {loading
                                     ? "..."
                                     : employee?.department_name || "—"}
                             </p>
+
                             <span className="dashboard-card-note">
                                 Your assigned department
                             </span>
@@ -191,12 +221,15 @@ function EmployeeDashboard() {
                             <div className="dashboard-card-icon active-icon">
                                 <span aria-hidden="true">✓</span>
                             </div>
+
                             <h3>Employment Status</h3>
+
                             <p style={{ fontSize: "22px" }}>
                                 {loading
                                     ? "..."
                                     : employee?.status || "—"}
                             </p>
+
                             <span className="dashboard-card-note">
                                 Your current employment status
                             </span>
@@ -206,12 +239,15 @@ function EmployeeDashboard() {
                             <div className="dashboard-card-icon job-title-icon">
                                 <span aria-hidden="true">💼</span>
                             </div>
+
                             <h3>Job Title</h3>
+
                             <p style={{ fontSize: "22px" }}>
                                 {loading
                                     ? "..."
                                     : employee?.job_title || "—"}
                             </p>
+
                             <span className="dashboard-card-note">
                                 Your current position
                             </span>

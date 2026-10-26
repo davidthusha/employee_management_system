@@ -17,14 +17,17 @@ const login = async (req, res) => {
         const [users] = await pool.query(
             `
             SELECT
-                user_id,
-                employee_id,
-                username,
-                password_hash,
-                role
-            FROM users
-            WHERE username = ?
-            `,
+                u.user_id,
+                u.employee_id,
+                u.username,
+                u.password_hash,
+                u.role,
+                e.first_name,
+                e.last_name
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.employee_id
+            WHERE u.username = ?
+            LIMIT 1`,
             [String(username).trim()]
         );
 
@@ -60,7 +63,9 @@ const login = async (req, res) => {
                 user_id: user.user_id,
                 employee_id: user.employee_id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || ""
             },
             process.env.JWT_SECRET,
             {
@@ -75,7 +80,9 @@ const login = async (req, res) => {
                 user_id: user.user_id,
                 employee_id: user.employee_id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || ""
             }
         });
 
@@ -207,9 +214,9 @@ const createEmployeeAccount = async (req, res) => {
 
 
 // GET CURRENT LOGGED-IN USER
+
 const getCurrentUser = async (req, res) => {
     try {
-        // req.user is populated by authenticateToken middleware.
         const userId = req.user?.user_id;
 
         if (!userId) {
@@ -221,12 +228,16 @@ const getCurrentUser = async (req, res) => {
         const [users] = await pool.query(
             `
             SELECT
-                user_id,
-                employee_id,
-                username,
-                role
-            FROM users
-            WHERE user_id = ?
+                u.user_id,
+                u.employee_id,
+                u.username,
+                u.role,
+                e.first_name,
+                e.last_name
+            FROM users u
+            LEFT JOIN employees e
+                ON u.employee_id = e.employee_id
+            WHERE u.user_id = ?
             LIMIT 1
             `,
             [userId]
@@ -238,8 +249,22 @@ const getCurrentUser = async (req, res) => {
             });
         }
 
+        const user = users[0];
+
         return res.json({
-            user: users[0]
+            user: {
+                user_id: user.user_id,
+                employee_id: user.employee_id,
+                username: user.username,
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || "",
+                display_name:
+                    [user.first_name, user.last_name]
+                        .filter(Boolean)
+                        .join(" ") ||
+                    (user.role === "Admin" ? "Administrator" : user.username)
+            }
         });
 
     } catch (error) {
@@ -250,7 +275,6 @@ const getCurrentUser = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     login,

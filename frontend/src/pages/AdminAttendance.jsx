@@ -78,9 +78,33 @@ function statusClass(status) {
     }
 }
 
+function getDisplayName(user) {
+    const fullName = [user?.first_name, user?.last_name]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    return (
+        user?.display_name ||
+        fullName ||
+        (user?.role === "Admin" ? "Administrator" : user?.username) ||
+        "User"
+    );
+}
+
 function AdminAttendance() {
     const navigate = useNavigate();
     const location = useLocation();
+
+    let user = {};
+
+    try {
+        user = JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+        user = {};
+    }
+
+    const displayName = getDisplayName(user);
 
     const [records, setRecords] = useState([]);
     const [employees, setEmployees] = useState([]);
@@ -115,7 +139,7 @@ function AdminAttendance() {
         }
     }, []);
 
-    // Load attendance using the currently selected filters.
+    // Load attendance using the selected filters.
     const loadAttendance = useCallback(async () => {
         setLoading(true);
         setError("");
@@ -123,17 +147,11 @@ function AdminAttendance() {
         try {
             const params = {};
 
-            if (filters.date) {
-                params.date = filters.date;
-            }
-
+            if (filters.date) params.date = filters.date;
             if (filters.employee_id) {
                 params.employee_id = filters.employee_id;
             }
-
-            if (filters.status) {
-                params.status = filters.status;
-            }
+            if (filters.status) params.status = filters.status;
 
             const response = await api.get("/attendance", { params });
 
@@ -164,7 +182,7 @@ function AdminAttendance() {
         loadAttendance();
     }, [loadAttendance]);
 
-    // Summary statistics.
+    // Summary statistics for the currently loaded records.
     const presentCount = new Set(
         records
             .filter(record =>
@@ -194,7 +212,6 @@ function AdminAttendance() {
             String(record.status || "").toLowerCase() === "absent"
     ).length;
 
-    // Filter controls.
     const handleFilterChange = event => {
         const { name, value } = event.target;
 
@@ -281,15 +298,10 @@ function AdminAttendance() {
 
         try {
             if (editingId) {
-                await api.put(
-                    `/attendance/${editingId}`,
-                    payload
-                );
-
+                await api.put(`/attendance/${editingId}`, payload);
                 setSuccess("Attendance record updated successfully.");
             } else {
                 await api.post("/attendance", payload);
-
                 setSuccess("Attendance record created successfully.");
             }
 
@@ -330,9 +342,7 @@ function AdminAttendance() {
         setSuccess("");
 
         try {
-            await api.delete(
-                `/attendance/${record.attendance_id}`
-            );
+            await api.delete(`/attendance/${record.attendance_id}`);
 
             setSuccess("Attendance record deleted successfully.");
 
@@ -353,13 +363,11 @@ function AdminAttendance() {
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-
         navigate("/", { replace: true });
     };
 
     return (
         <div className="dashboard">
-            {/* Admin sidebar */}
             <aside className="sidebar">
                 <div className="sidebar-logo">
                     Employee Management
@@ -382,13 +390,14 @@ function AdminAttendance() {
                 </nav>
             </aside>
 
-            {/* Main page */}
             <main className="dashboard-main">
                 <header className="dashboard-header">
                     <h2>Attendance Management</h2>
 
                     <div className="user-section">
-                        <span className="user-name">Admin</span>
+                        <span className="user-name">
+                            {displayName}
+                        </span>
 
                         <button
                             type="button"
@@ -433,17 +442,13 @@ function AdminAttendance() {
                         </div>
                     )}
 
-                    {/* Updated statistics */}
                     <div className="dashboard-cards admin-attendance-summary">
                         <div className="dashboard-card">
                             <div className="dashboard-card-icon employees-icon">
                                 👥
                             </div>
-
                             <h3>Employees Present</h3>
-
                             <p>{loading ? "..." : presentCount}</p>
-
                             <span className="dashboard-card-note">
                                 Unique employees present, including late arrivals
                             </span>
@@ -453,11 +458,8 @@ function AdminAttendance() {
                             <div className="dashboard-card-icon attendance-icon">
                                 ⏰
                             </div>
-
                             <h3>Late Arrivals</h3>
-
                             <p>{loading ? "..." : lateCount}</p>
-
                             <span className="dashboard-card-note">
                                 Check-ins after 08:30 Sri Lanka time
                             </span>
@@ -467,11 +469,8 @@ function AdminAttendance() {
                             <div className="dashboard-card-icon active-icon">
                                 ✓
                             </div>
-
                             <h3>Checked Out</h3>
-
                             <p>{loading ? "..." : checkedOutCount}</p>
-
                             <span className="dashboard-card-note">
                                 Records with a checkout time
                             </span>
@@ -481,18 +480,14 @@ function AdminAttendance() {
                             <div className="dashboard-card-icon departments-icon">
                                 📴
                             </div>
-
                             <h3>Leave Records</h3>
-
                             <p>{loading ? "..." : leaveCount}</p>
-
                             <span className="dashboard-card-note">
                                 {absentCount} absent · {leaveCount} on leave
                             </span>
                         </div>
                     </div>
 
-                    {/* Filters */}
                     <div className="dashboard-recent admin-attendance-panel">
                         <div className="dashboard-section-header">
                             <div>
@@ -506,7 +501,6 @@ function AdminAttendance() {
                         <div className="admin-attendance-filters">
                             <label>
                                 Attendance Date
-
                                 <input
                                     type="date"
                                     name="date"
@@ -517,14 +511,12 @@ function AdminAttendance() {
 
                             <label>
                                 Employee
-
                                 <select
                                     name="employee_id"
                                     value={filters.employee_id}
                                     onChange={handleFilterChange}
                                 >
                                     <option value="">All employees</option>
-
                                     {employees.map(employee => (
                                         <option
                                             key={employee.employee_id}
@@ -541,7 +533,6 @@ function AdminAttendance() {
 
                             <label>
                                 Status
-
                                 <select
                                     name="status"
                                     value={filters.status}
@@ -565,7 +556,6 @@ function AdminAttendance() {
                         </div>
                     </div>
 
-                    {/* Create / edit form */}
                     {showForm && (
                         <div className="dashboard-recent admin-attendance-panel">
                             <div className="dashboard-section-header">
@@ -575,7 +565,6 @@ function AdminAttendance() {
                                             ? "Edit Attendance"
                                             : "Add Attendance"}
                                     </h2>
-
                                     <p>
                                         Enter the employee's attendance details.
                                     </p>
@@ -600,7 +589,6 @@ function AdminAttendance() {
                             >
                                 <label>
                                     Employee *
-
                                     <select
                                         name="employee_id"
                                         value={form.employee_id}
@@ -608,7 +596,6 @@ function AdminAttendance() {
                                         required
                                     >
                                         <option value="">Select employee</option>
-
                                         {employees.map(employee => (
                                             <option
                                                 key={employee.employee_id}
@@ -625,7 +612,6 @@ function AdminAttendance() {
 
                                 <label>
                                     Attendance Date *
-
                                     <input
                                         type="date"
                                         name="attendance_date"
@@ -637,7 +623,6 @@ function AdminAttendance() {
 
                                 <label>
                                     Check-in Time
-
                                     <input
                                         type="time"
                                         name="check_in"
@@ -648,7 +633,6 @@ function AdminAttendance() {
 
                                 <label>
                                     Check-out Time
-
                                     <input
                                         type="time"
                                         name="check_out"
@@ -659,7 +643,6 @@ function AdminAttendance() {
 
                                 <label>
                                     Attendance Status *
-
                                     <select
                                         name="status"
                                         value={form.status}
@@ -690,12 +673,10 @@ function AdminAttendance() {
                         </div>
                     )}
 
-                    {/* Attendance records table */}
                     <div className="dashboard-recent">
                         <div className="dashboard-section-header">
                             <div>
                                 <h2>Attendance Records</h2>
-
                                 <p>
                                     {records.length} record(s) match the current filters.
                                 </p>
@@ -728,19 +709,13 @@ function AdminAttendance() {
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td
-                                                colSpan="7"
-                                                className="dashboard-empty"
-                                            >
+                                            <td colSpan="7" className="dashboard-empty">
                                                 Loading attendance records...
                                             </td>
                                         </tr>
                                     ) : records.length === 0 ? (
                                         <tr>
-                                            <td
-                                                colSpan="7"
-                                                className="dashboard-empty"
-                                            >
+                                            <td colSpan="7" className="dashboard-empty">
                                                 No attendance records found.
                                             </td>
                                         </tr>
@@ -760,17 +735,9 @@ function AdminAttendance() {
                                                     </div>
                                                 </td>
 
-                                                <td>
-                                                    {record.employee_code || "—"}
-                                                </td>
-
-                                                <td>
-                                                    {formatTime(record.check_in)}
-                                                </td>
-
-                                                <td>
-                                                    {formatTime(record.check_out)}
-                                                </td>
+                                                <td>{record.employee_code || "—"}</td>
+                                                <td>{formatTime(record.check_in)}</td>
+                                                <td>{formatTime(record.check_out)}</td>
 
                                                 <td>
                                                     <span
@@ -785,9 +752,7 @@ function AdminAttendance() {
                                                         <button
                                                             type="button"
                                                             className="admin-attendance-edit-button"
-                                                            onClick={() =>
-                                                                openEditForm(record)
-                                                            }
+                                                            onClick={() => openEditForm(record)}
                                                         >
                                                             Edit
                                                         </button>
@@ -795,9 +760,7 @@ function AdminAttendance() {
                                                         <button
                                                             type="button"
                                                             className="admin-attendance-delete-button"
-                                                            onClick={() =>
-                                                                handleDelete(record)
-                                                            }
+                                                            onClick={() => handleDelete(record)}
                                                         >
                                                             Delete
                                                         </button>

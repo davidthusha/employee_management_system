@@ -17,7 +17,9 @@ function getSriLankaDate() {
     const values = {};
 
     parts.forEach(part => {
-        if (part.type !== "literal") values[part.type] = part.value;
+        if (part.type !== "literal") {
+            values[part.type] = part.value;
+        }
     });
 
     return `${values.year}-${values.month}-${values.day}`;
@@ -40,8 +42,6 @@ function formatTime(value) {
 function isLateRecord(record) {
     if (!record.check_in) return false;
 
-    // The backend supplies is_late. The time comparison also
-    // supports older records that do not have this field.
     if (
         record.is_late === 1 ||
         record.is_late === true ||
@@ -68,6 +68,20 @@ function getStatusClass(status) {
     }
 }
 
+function getDisplayName(user) {
+    const fullName = [user?.first_name, user?.last_name]
+        .filter(name => typeof name === "string" && name.trim())
+        .map(name => name.trim())
+        .join(" ");
+
+    return (
+        user?.display_name ||
+        fullName ||
+        user?.username ||
+        "Employee"
+    );
+}
+
 function EmployeeAttendance() {
     const navigate = useNavigate();
 
@@ -79,18 +93,21 @@ function EmployeeAttendance() {
     const [success, setSuccess] = useState("");
 
     const today = getSriLankaDate();
+    const displayName = getDisplayName(user);
 
     const loadAttendance = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
 
         try {
             const response = await api.get("/attendance/me");
+
             const data = Array.isArray(response.data)
                 ? response.data
                 : [];
 
             setRecords(data);
             setError("");
+
             return data;
         } catch (err) {
             console.error(
@@ -134,7 +151,7 @@ function EmployeeAttendance() {
         String(todayRecord.check_out).trim() !== ""
     );
 
-    // Present includes both on-time arrivals and late arrivals.
+    // Present includes both on-time and late arrivals.
     const countPresentDays = () =>
         records.filter(record => {
             const status = String(record.status || "").toLowerCase();
@@ -177,8 +194,7 @@ function EmployeeAttendance() {
                 err.response?.data || err.message
             );
 
-            // Reload after conflicts too, so existing database records
-            // determine the current button state.
+            // Reload to ensure button states reflect saved attendance.
             await loadAttendance(false);
 
             setError(
@@ -193,6 +209,7 @@ function EmployeeAttendance() {
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
         navigate("/", { replace: true });
     };
 
@@ -227,7 +244,7 @@ function EmployeeAttendance() {
 
                     <div className="user-section">
                         <span className="user-name">
-                            {user.username || "Employee"}
+                            {displayName}
                         </span>
 
                         <button
@@ -464,12 +481,15 @@ function EmployeeAttendance() {
                                                 <td>
                                                     {formatDate(record.attendance_date)}
                                                 </td>
+
                                                 <td>
                                                     {formatTime(record.check_in)}
                                                 </td>
+
                                                 <td>
                                                     {formatTime(record.check_out)}
                                                 </td>
+
                                                 <td>
                                                     <span
                                                         className={`dashboard-status ${getStatusClass(record.status)}`}

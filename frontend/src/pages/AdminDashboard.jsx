@@ -16,6 +16,15 @@ function AdminDashboard({ children }) {
         user = {};
     }
 
+    const displayName =
+        user?.display_name ||
+        [user?.first_name, user?.last_name]
+            .filter(name => typeof name === "string" && name.trim())
+            .map(name => name.trim())
+            .join(" ") ||
+        (user?.role === "Admin" ? "Administrator" : user?.username) ||
+        "User";
+
     const [employees, setEmployees] = useState([]);
     const [departmentCount, setDepartmentCount] = useState(0);
     const [todayAttendance, setTodayAttendance] = useState(0);
@@ -39,7 +48,7 @@ function AdminDashboard({ children }) {
         "/reports": "Reports"
     }[location.pathname] || "Dashboard";
 
-    // Load employee and department statistics for the dashboard.
+    // Load employee and department statistics.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -58,17 +67,16 @@ function AdminDashboard({ children }) {
 
                 if (cancelled) return;
 
-                setEmployees(
-                    Array.isArray(employeeResponse.data)
-                        ? employeeResponse.data
-                        : []
-                );
+                const employeeData = Array.isArray(employeeResponse.data)
+                    ? employeeResponse.data
+                    : [];
 
-                setDepartmentCount(
-                    Array.isArray(departmentResponse.data)
-                        ? departmentResponse.data.length
-                        : 0
-                );
+                const departmentData = Array.isArray(departmentResponse.data)
+                    ? departmentResponse.data
+                    : [];
+
+                setEmployees(employeeData);
+                setDepartmentCount(departmentData.length);
             } catch (err) {
                 if (!cancelled) {
                     console.error(
@@ -95,7 +103,7 @@ function AdminDashboard({ children }) {
         };
     }, [location.pathname]);
 
-    // Load today's attendance using Sri Lanka's local date.
+    // Load today's attendance using the Sri Lankan date.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -123,8 +131,7 @@ function AdminDashboard({ children }) {
                     ? response.data
                     : [];
 
-                // Count unique employees who checked in today.
-                // Late arrivals count as present too.
+                // Late arrivals count as present.
                 const employeeIdsPresent = new Set(
                     records
                         .filter(record => {
@@ -152,7 +159,7 @@ function AdminDashboard({ children }) {
 
                     setAttendanceError(
                         err.response?.data?.message ||
-                        "Unable to load today's attendance"
+                        "Unable to load today's attendance."
                     );
                 }
             } finally {
@@ -237,7 +244,7 @@ function AdminDashboard({ children }) {
 
                     <div className="user-section">
                         <span className="user-name">
-                            {user?.username || "Admin"}
+                            {displayName}
                         </span>
 
                         <button
@@ -275,7 +282,6 @@ function AdminDashboard({ children }) {
                                     </div>
 
                                     <h3>Total Employees</h3>
-
                                     <p>{loading ? "..." : employees.length}</p>
 
                                     <span className="dashboard-card-note">
@@ -289,7 +295,6 @@ function AdminDashboard({ children }) {
                                     </div>
 
                                     <h3>Departments</h3>
-
                                     <p>{loading ? "..." : departmentCount}</p>
 
                                     <span className="dashboard-card-note">
@@ -303,7 +308,6 @@ function AdminDashboard({ children }) {
                                     </div>
 
                                     <h3>Active Employees</h3>
-
                                     <p>{loading ? "..." : activeEmployees}</p>
 
                                     <span className="dashboard-card-note">
