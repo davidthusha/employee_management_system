@@ -120,9 +120,7 @@ function AdminDashboard({ children }) {
 
                     <Link
                         to="/attendance"
-                        className={
-                            location.pathname === "/attendance" ? "active" : ""
-                        }
+                        className={location.pathname === "/attendance" ? "active" : ""}
                     >
                         Attendance
                     </Link>

@@ -3,8 +3,8 @@ const pool = require("../config/db");
 
 const TIME_ZONE = "Asia/Colombo";
 const WORK_START_TIME = "08:30:00";
+const ALLOWED_STATUSES = ["Present", "Absent", "Late", "Leave"];
 
-// Get current date and time in Sri Lanka.
 function getSriLankaDateTime() {
     const parts = new Intl.DateTimeFormat("en-GB", {
         timeZone: TIME_ZONE,
@@ -20,9 +20,7 @@ function getSriLankaDateTime() {
     const values = {};
 
     for (const part of parts) {
-        if (part.type !== "literal") {
-            values[part.type] = part.value;
-        }
+        if (part.type !== "literal") values[part.type] = part.value;
     }
 
     return {
@@ -31,8 +29,6 @@ function getSriLankaDateTime() {
     };
 }
 
-// Shared fields for attendance queries.
-// is_late is calculated from check-in time, independently of status.
 const attendanceSelect = `
     a.attendance_id,
     a.employee_id,
@@ -44,26 +40,46 @@ const attendanceSelect = `
     TIME_FORMAT(a.check_out, '%H:%i:%s') AS check_out,
     a.status,
     CASE
-        WHEN a.check_in IS NOT NULL
-         AND a.check_in > '08:30:00'
-        THEN 1
-        ELSE 0
+        WHEN a.check_in IS NOT NULL AND a.check_in > '08:30:00'
+        THEN 1 ELSE 0
     END AS is_late
 `;
 
-// ADMIN: Get all attendance records.
+async function employeeExists(employeeId) {
+    const [rows] = await pool.query(
+        "SELECT employee_id FROM employees WHERE employee_id = ? LIMIT 1",
+        [employeeId]
+    );
+    return rows.length > 0;
+}
+
+function validateTimes(checkIn, checkOut) {
+    if (checkIn && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(checkIn)) {
+        return "Invalid check-in time";
+    }
+
+    if (checkOut && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(checkOut)) {
+        return "Invalid check-out time";
+    }
+
+    if (checkIn && checkOut && checkOut < checkIn) {
+        return "Check-out time cannot be earlier than check-in time";
+    }
+
+    return null;
+}
+
+// ADMIN: list all records, optionally filtered by date and employee.
 const getAttendance = async (req, res) => {
     try {
-        const { date, employee_id } = req.query;
+        const { date, employee_id, status } = req.query;
 
         let sql = `
             SELECT ${attendanceSelect}
             FROM attendance a
-            INNER JOIN employees e
-                ON e.employee_id = a.employee_id
+            INNER JOIN employees e ON e.employee_id = a.employee_id
             WHERE 1 = 1
         `;
-
         const params = [];
 
         if (date) {
@@ -76,30 +92,34 @@ const getAttendance = async (req, res) => {
             params.push(employee_id);
         }
 
+        if (status) {
+            if (!ALLOWED_STATUSES.includes(status)) {
+                return res.status(400).json({ message: "Invalid attendance status" });
+            }
+            sql += " AND a.status = ?";
+            params.push(status);
+        }
+
         sql += " ORDER BY a.attendance_date DESC, a.attendance_id DESC";
 
-        const [records] = await pool.query(sql, params);
-        return res.json(records);
+        const [rows] = await pool.query(sql, params);
+        return res.json(rows);
     } catch (error) {
         console.error("Get attendance error:", error);
-        return res.status(500).json({
-            message: "Failed to retrieve attendance records"
-        });
+        return res.status(500).json({ message: "Failed to retrieve attendance records" });
     }
 };
 
-// EMPLOYEE: Get only the logged-in employee's records.
+// EMPLOYEE: list only their own records.
 const getMyAttendance = async (req, res) => {
     try {
         const employeeId = req.user?.employee_id;
 
         if (!employeeId) {
-            return res.status(403).json({
-                message: "This account is not linked to an employee"
-            });
+            return res.status(403).json({ message: "Account is not linked to an employee" });
         }
 
-        const [records] = await pool.query(
+        const [rows] = await pool.query(
             `SELECT
                 attendance_id,
                 employee_id,
@@ -108,10 +128,8 @@ const getMyAttendance = async (req, res) => {
                 TIME_FORMAT(check_out, '%H:%i:%s') AS check_out,
                 status,
                 CASE
-                    WHEN check_in IS NOT NULL
-                     AND check_in > '08:30:00'
-                    THEN 1
-                    ELSE 0
+                    WHEN check_in IS NOT NULL AND check_in > '08:30:00'
+                    THEN 1 ELSE 0
                 END AS is_late
              FROM attendance
              WHERE employee_id = ?
@@ -119,61 +137,38 @@ const getMyAttendance = async (req, res) => {
             [employeeId]
         );
 
-        return res.json(records);
+        return res.json(rows);
     } catch (error) {
-        console.error("Get my attendance error:", error);
-        return res.status(500).json({
-            message: "Failed to retrieve your attendance records"
-        });
+        console.error("Get own attendance error:", error);
+        return res.status(500).json({ message: "Failed to retrieve attendance records" });
     }
 };
 
-// EMPLOYEE: Check in.
-// Every valid check-in is Present; is_late is tracked separately.
+// EMPLOYEE: check in once per day. Status remains Present;
+// is_late is calculated separately from the check-in time.
 const checkIn = async (req, res) => {
     try {
         const employeeId = req.user?.employee_id;
 
         if (!employeeId) {
-            return res.status(403).json({
-                message: "This account is not linked to an employee"
-            });
+            return res.status(403).json({ message: "Account is not linked to an employee" });
+        }
+
+        if (!(await employeeExists(employeeId))) {
+            return res.status(404).json({ message: "Employee record not found" });
         }
 
         const { date, time } = getSriLankaDateTime();
         const isLate = time > WORK_START_TIME;
 
-        const [employees] = await pool.query(
-            `SELECT employee_id
-             FROM employees
-             WHERE employee_id = ?
-             LIMIT 1`,
-            [employeeId]
-        );
-
-        if (!employees.length) {
-            return res.status(404).json({
-                message: "Employee record not found"
-            });
-        }
-
         const [existing] = await pool.query(
-            `SELECT
-                attendance_id,
-                employee_id,
-                DATE_FORMAT(attendance_date, '%Y-%m-%d') AS attendance_date,
-                TIME_FORMAT(check_in, '%H:%i:%s') AS check_in,
-                TIME_FORMAT(check_out, '%H:%i:%s') AS check_out,
-                status,
-                CASE
-                    WHEN check_in IS NOT NULL
-                     AND check_in > '08:30:00'
-                    THEN 1
-                    ELSE 0
-                END AS is_late
+            `SELECT attendance_id,
+                    DATE_FORMAT(attendance_date, '%Y-%m-%d') AS attendance_date,
+                    TIME_FORMAT(check_in, '%H:%i:%s') AS check_in,
+                    TIME_FORMAT(check_out, '%H:%i:%s') AS check_out,
+                    status
              FROM attendance
-             WHERE employee_id = ?
-               AND attendance_date = ?
+             WHERE employee_id = ? AND attendance_date = ?
              LIMIT 1`,
             [employeeId, date]
         );
@@ -185,7 +180,6 @@ const checkIn = async (req, res) => {
             });
         }
 
-        // Keep the database status as Present, even for a late arrival.
         const [result] = await pool.query(
             `INSERT INTO attendance
                 (employee_id, attendance_date, check_in, check_out, status)
@@ -211,70 +205,43 @@ const checkIn = async (req, res) => {
         console.error("Check-in error:", error);
 
         if (error.code === "ER_DUP_ENTRY") {
-            return res.status(409).json({
-                message: "You have already checked in today."
-            });
+            return res.status(409).json({ message: "You have already checked in today." });
         }
 
-        return res.status(500).json({
-            message: "Check-in failed. Please try again."
-        });
+        return res.status(500).json({ message: "Check-in failed" });
     }
 };
 
-// EMPLOYEE: Check out by updating today's existing record.
+// EMPLOYEE: update today's existing row with check-out time.
 const checkOut = async (req, res) => {
     try {
         const employeeId = req.user?.employee_id;
 
         if (!employeeId) {
-            return res.status(403).json({
-                message: "This account is not linked to an employee"
-            });
+            return res.status(403).json({ message: "Account is not linked to an employee" });
         }
 
         const { date, time } = getSriLankaDateTime();
 
-        const [records] = await pool.query(
-            `SELECT
-                attendance_id,
-                employee_id,
-                DATE_FORMAT(attendance_date, '%Y-%m-%d') AS attendance_date,
-                TIME_FORMAT(check_in, '%H:%i:%s') AS check_in,
-                TIME_FORMAT(check_out, '%H:%i:%s') AS check_out,
-                status,
-                CASE
-                    WHEN check_in IS NOT NULL
-                     AND check_in > '08:30:00'
-                    THEN 1
-                    ELSE 0
-                END AS is_late
+        const [rows] = await pool.query(
+            `SELECT attendance_id,
+                    TIME_FORMAT(check_in, '%H:%i:%s') AS check_in,
+                    TIME_FORMAT(check_out, '%H:%i:%s') AS check_out,
+                    status
              FROM attendance
-             WHERE employee_id = ?
-               AND attendance_date = ?
+             WHERE employee_id = ? AND attendance_date = ?
              LIMIT 1`,
             [employeeId, date]
         );
 
-        if (!records.length) {
+        if (!rows.length || !rows[0].check_in) {
             return res.status(400).json({
-                message: "No attendance record found for today. Please check in first."
+                message: "No check-in found for today. Please check in first."
             });
         }
 
-        const record = records[0];
-
-        if (!record.check_in) {
-            return res.status(400).json({
-                message: "Please check in before checking out."
-            });
-        }
-
-        if (record.check_out) {
-            return res.status(409).json({
-                message: "You have already checked out today.",
-                attendance: record
-            });
+        if (rows[0].check_out) {
+            return res.status(409).json({ message: "You have already checked out today." });
         }
 
         const [result] = await pool.query(
@@ -284,119 +251,84 @@ const checkOut = async (req, res) => {
                AND employee_id = ?
                AND attendance_date = ?
                AND check_out IS NULL`,
-            [time, record.attendance_id, employeeId, date]
+            [time, rows[0].attendance_id, employeeId, date]
         );
 
-        if (result.affectedRows === 0) {
-            return res.status(409).json({
-                message: "Attendance has already been checked out."
-            });
+        if (!result.affectedRows) {
+            return res.status(409).json({ message: "Attendance has already been checked out." });
         }
 
         return res.json({
             message: `Check-out successful at ${time.slice(0, 5)}.`,
-            attendance: {
-                ...record,
-                check_out: time
-            }
+            check_out: time
         });
     } catch (error) {
         console.error("Check-out error:", error);
-        return res.status(500).json({
-            message: "Check-out failed. Please try again."
-        });
+        return res.status(500).json({ message: "Check-out failed" });
     }
 };
 
-// Get one record. Admin can view any; employees only their own.
+// ADMIN can view any single record; employees can view their own only.
 const getAttendanceById = async (req, res) => {
     try {
-        const [records] = await pool.query(
+        const [rows] = await pool.query(
             `SELECT ${attendanceSelect}
              FROM attendance a
-             INNER JOIN employees e
-                ON e.employee_id = a.employee_id
+             INNER JOIN employees e ON e.employee_id = a.employee_id
              WHERE a.attendance_id = ?
              LIMIT 1`,
             [req.params.id]
         );
 
-        if (!records.length) {
-            return res.status(404).json({
-                message: "Attendance record not found"
-            });
+        if (!rows.length) {
+            return res.status(404).json({ message: "Attendance record not found" });
         }
 
-        const record = records[0];
+        const record = rows[0];
 
         if (
             req.user.role !== "Admin" &&
             Number(record.employee_id) !== Number(req.user.employee_id)
         ) {
-            return res.status(403).json({
-                message: "You are not allowed to view this attendance record"
-            });
+            return res.status(403).json({ message: "You cannot access this record" });
         }
 
         return res.json(record);
     } catch (error) {
-        console.error("Get attendance by ID error:", error);
-        return res.status(500).json({
-            message: "Failed to retrieve attendance record"
-        });
+        console.error("Get attendance record error:", error);
+        return res.status(500).json({ message: "Failed to retrieve attendance record" });
     }
 };
 
-// ADMIN: Create attendance manually.
+// ADMIN: create a record manually.
 const createAttendance = async (req, res) => {
     try {
-        const {
-            employee_id,
-            attendance_date,
-            check_in,
-            check_out,
-            status
-        } = req.body;
-
-        const allowedStatuses = ["Present", "Absent", "Late", "Leave"];
+        const { employee_id, attendance_date, check_in, check_out, status } = req.body;
 
         if (
             employee_id == null ||
             !attendance_date ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(attendance_date) ||
             !status
         ) {
             return res.status(400).json({
-                message: "Employee, attendance date and status are required"
+                message: "Employee, valid attendance date and status are required"
             });
         }
 
-        if (!allowedStatuses.includes(status)) {
-            return res.status(400).json({
-                message: "Invalid attendance status"
-            });
+        if (!ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ message: "Invalid attendance status" });
         }
 
-        if (check_in && check_out && check_out < check_in) {
-            return res.status(400).json({
-                message: "Check-out time cannot be earlier than check-in time"
-            });
-        }
+        const timeError = validateTimes(check_in, check_out);
+        if (timeError) return res.status(400).json({ message: timeError });
 
-        const [employees] = await pool.query(
-            "SELECT employee_id FROM employees WHERE employee_id = ?",
-            [employee_id]
-        );
-
-        if (!employees.length) {
-            return res.status(404).json({
-                message: "Employee not found"
-            });
+        if (!(await employeeExists(employee_id))) {
+            return res.status(404).json({ message: "Employee not found" });
         }
 
         const [existing] = await pool.query(
-            `SELECT attendance_id
-             FROM attendance
-             WHERE employee_id = ? AND attendance_date = ?`,
+            "SELECT attendance_id FROM attendance WHERE employee_id = ? AND attendance_date = ?",
             [employee_id, attendance_date]
         );
 
@@ -410,13 +342,7 @@ const createAttendance = async (req, res) => {
             `INSERT INTO attendance
                 (employee_id, attendance_date, check_in, check_out, status)
              VALUES (?, ?, ?, ?, ?)`,
-            [
-                employee_id,
-                attendance_date,
-                check_in || null,
-                check_out || null,
-                status
-            ]
+            [employee_id, attendance_date, check_in || null, check_out || null, status]
         );
 
         return res.status(201).json({
@@ -432,73 +358,49 @@ const createAttendance = async (req, res) => {
             });
         }
 
-        return res.status(500).json({
-            message: "Failed to record attendance"
-        });
+        return res.status(500).json({ message: "Failed to create attendance record" });
     }
 };
 
-// ADMIN: Update attendance manually.
+// ADMIN: update a record.
 const updateAttendance = async (req, res) => {
     try {
         const { id } = req.params;
-        const {
-            employee_id,
-            attendance_date,
-            check_in,
-            check_out,
-            status
-        } = req.body;
-
-        const allowedStatuses = ["Present", "Absent", "Late", "Leave"];
+        const { employee_id, attendance_date, check_in, check_out, status } = req.body;
 
         if (
             employee_id == null ||
             !attendance_date ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(attendance_date) ||
             !status
         ) {
             return res.status(400).json({
-                message: "Employee, attendance date and status are required"
+                message: "Employee, valid attendance date and status are required"
             });
         }
 
-        if (!allowedStatuses.includes(status)) {
-            return res.status(400).json({
-                message: "Invalid attendance status"
-            });
+        if (!ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ message: "Invalid attendance status" });
         }
 
-        if (check_in && check_out && check_out < check_in) {
-            return res.status(400).json({
-                message: "Check-out time cannot be earlier than check-in time"
-            });
+        const timeError = validateTimes(check_in, check_out);
+        if (timeError) return res.status(400).json({ message: timeError });
+
+        if (!(await employeeExists(employee_id))) {
+            return res.status(404).json({ message: "Employee not found" });
         }
 
-        const [existingRecord] = await pool.query(
+        const [existing] = await pool.query(
             "SELECT attendance_id FROM attendance WHERE attendance_id = ?",
             [id]
         );
 
-        if (!existingRecord.length) {
-            return res.status(404).json({
-                message: "Attendance record not found"
-            });
-        }
-
-        const [employees] = await pool.query(
-            "SELECT employee_id FROM employees WHERE employee_id = ?",
-            [employee_id]
-        );
-
-        if (!employees.length) {
-            return res.status(404).json({
-                message: "Employee not found"
-            });
+        if (!existing.length) {
+            return res.status(404).json({ message: "Attendance record not found" });
         }
 
         const [duplicates] = await pool.query(
-            `SELECT attendance_id
-             FROM attendance
+            `SELECT attendance_id FROM attendance
              WHERE employee_id = ?
                AND attendance_date = ?
                AND attendance_id <> ?`,
@@ -519,35 +421,17 @@ const updateAttendance = async (req, res) => {
                  check_out = ?,
                  status = ?
              WHERE attendance_id = ?`,
-            [
-                employee_id,
-                attendance_date,
-                check_in || null,
-                check_out || null,
-                status,
-                id
-            ]
+            [employee_id, attendance_date, check_in || null, check_out || null, status, id]
         );
 
-        return res.json({
-            message: "Attendance updated successfully"
-        });
+        return res.json({ message: "Attendance updated successfully" });
     } catch (error) {
         console.error("Update attendance error:", error);
-
-        if (error.code === "ER_DUP_ENTRY") {
-            return res.status(409).json({
-                message: "Attendance already exists for this employee and date"
-            });
-        }
-
-        return res.status(500).json({
-            message: "Failed to update attendance"
-        });
+        return res.status(500).json({ message: "Failed to update attendance record" });
     }
 };
 
-// ADMIN: Delete attendance.
+// ADMIN: delete a record.
 const deleteAttendance = async (req, res) => {
     try {
         const [result] = await pool.query(
@@ -555,20 +439,14 @@ const deleteAttendance = async (req, res) => {
             [req.params.id]
         );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: "Attendance record not found"
-            });
+        if (!result.affectedRows) {
+            return res.status(404).json({ message: "Attendance record not found" });
         }
 
-        return res.json({
-            message: "Attendance deleted successfully"
-        });
+        return res.json({ message: "Attendance deleted successfully" });
     } catch (error) {
         console.error("Delete attendance error:", error);
-        return res.status(500).json({
-            message: "Failed to delete attendance"
-        });
+        return res.status(500).json({ message: "Failed to delete attendance record" });
     }
 };
 

@@ -18,7 +18,7 @@ const {
     authorizeRoles
 } = require("../middleware/authMiddleware");
 
-// Employee routes: the controller derives employee_id from the JWT.
+// Employee-specific attendance endpoints.
 router.get(
     "/me",
     authenticateToken,
@@ -40,7 +40,7 @@ router.post(
     checkOut
 );
 
-// Admin attendance management.
+// Admin attendance management endpoints.
 router.get(
     "/",
     authenticateToken,
@@ -69,7 +69,7 @@ router.delete(
     deleteAttendance
 );
 
-// Admin can view any record; employees can view their own only.
+// This route must remain after /me and the other named routes.
 router.get(
     "/:id",
     authenticateToken,
