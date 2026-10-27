@@ -183,7 +183,7 @@ const getLeaveTypes = async (req, res) => {
     }
 };
 
-// PUT /api/leaves/types/:id — Admin updates default allowance
+// PUT /api/leaves/types/:id
 const updateLeaveType = async (req, res) => {
     const id = positiveId(req.params.id);
     const { annual_allowance, is_active } = req.body;
@@ -230,7 +230,6 @@ const updateLeaveType = async (req, res) => {
             return res.status(404).json({ message: "Leave type not found." });
         }
 
-        // Update only unused employee balances when the default changes.
         if (allowance !== null) {
             await pool.query(
                 `UPDATE leave_balances b
@@ -427,8 +426,6 @@ const applyForLeave = async (req, res) => {
 
         const year = Number(start_date.slice(0, 4));
 
-        // Lock a balance row before checking availability, so concurrent
-        // requests for the same employee/type/year are serialized.
         if (Number(type.requires_balance)) {
             await ensureBalance(connection, employeeId, type, year);
         }
@@ -626,11 +623,19 @@ const reviewLeaveRequest = async (req, res) => {
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
+        // Format the dates in SQL so Node.js always receives YYYY-MM-DD strings.
         const [rows] = await connection.query(
-            `SELECT lr.*, YEAR(lr.start_date) AS leave_year,
-                    lt.leave_type_name, lt.annual_allowance, lt.requires_balance
+            `SELECT
+                lr.*,
+                DATE_FORMAT(lr.start_date, '%Y-%m-%d') AS start_date_iso,
+                DATE_FORMAT(lr.end_date, '%Y-%m-%d') AS end_date_iso,
+                YEAR(lr.start_date) AS leave_year,
+                lt.leave_type_name,
+                lt.annual_allowance,
+                lt.requires_balance
              FROM leave_requests lr
-             INNER JOIN leave_types lt ON lt.leave_type_id = lr.leave_type_id
+             INNER JOIN leave_types lt
+                ON lt.leave_type_id = lr.leave_type_id
              WHERE lr.leave_request_id = ?
              FOR UPDATE`,
             [id]
@@ -711,8 +716,8 @@ const reviewLeaveRequest = async (req, res) => {
                 [
                     request.employee_id,
                     id,
-                    request.end_date,
-                    request.start_date
+                    request.end_date_iso,
+                    request.start_date_iso
                 ]
             );
 
@@ -723,6 +728,7 @@ const reviewLeaveRequest = async (req, res) => {
                 });
             }
 
+            // Update the request within the same transaction as attendance creation.
             await connection.query(
                 `UPDATE leave_requests
                  SET status = 'Approved',
@@ -732,33 +738,73 @@ const reviewLeaveRequest = async (req, res) => {
                  WHERE leave_request_id = ?`,
                 [
                     req.user.user_id,
-                    typeof admin_comment === "string" ? admin_comment.trim() || null : null,
+                    typeof admin_comment === "string"
+                        ? admin_comment.trim() || null
+                        : null,
                     id
                 ]
             );
 
-            // Insert Leave only for weekdays without an existing attendance row.
-            // Existing Present/Absent/check-in records are not overwritten.
-            const start = new Date(`${String(request.start_date).slice(0, 10)}T00:00:00Z`);
-            const end = new Date(`${String(request.end_date).slice(0, 10)}T00:00:00Z`);
+            const start = new Date(`${request.start_date_iso}T00:00:00Z`);
+            const end = new Date(`${request.end_date_iso}T00:00:00Z`);
 
-            for (const dateCursor = new Date(start); dateCursor <= end; dateCursor.setUTCDate(dateCursor.getUTCDate() + 1)) {
+            if (
+                Number.isNaN(start.getTime()) ||
+                Number.isNaN(end.getTime())
+            ) {
+                throw new Error(
+                    `Invalid leave dates for request ${id}: ` +
+                    `${request.start_date_iso} to ${request.end_date_iso}`
+                );
+            }
+
+            let leaveAttendanceCreated = 0;
+            let existingAttendanceFound = 0;
+
+            for (
+                const dateCursor = new Date(start);
+                dateCursor <= end;
+                dateCursor.setUTCDate(dateCursor.getUTCDate() + 1)
+            ) {
                 const weekday = dateCursor.getUTCDay();
+
+                // Only create attendance for Monday to Friday.
                 if (weekday === 0 || weekday === 6) continue;
 
                 const date = dateCursor.toISOString().slice(0, 10);
 
-                await connection.query(
+                const [result] = await connection.query(
                     `INSERT INTO attendance
                         (employee_id, attendance_date, check_in, check_out, status)
                      SELECT ?, ?, NULL, NULL, 'Leave'
                      WHERE NOT EXISTS (
-                         SELECT 1 FROM attendance
-                         WHERE employee_id = ? AND attendance_date = ?
+                         SELECT 1
+                         FROM attendance
+                         WHERE employee_id = ?
+                           AND attendance_date = ?
                      )`,
-                    [request.employee_id, date, request.employee_id, date]
+                    [
+                        request.employee_id,
+                        date,
+                        request.employee_id,
+                        date
+                    ]
                 );
+
+                if (result.affectedRows > 0) {
+                    leaveAttendanceCreated += result.affectedRows;
+                } else {
+                    existingAttendanceFound++;
+                }
             }
+
+            console.log(
+                `[Leave Approval] Request=${id}, ` +
+                `Employee=${request.employee_id}, ` +
+                `Dates=${request.start_date_iso} to ${request.end_date_iso}, ` +
+                `Leave attendance created=${leaveAttendanceCreated}, ` +
+                `Existing attendance rows skipped=${existingAttendanceFound}`
+            );
         } else {
             await connection.query(
                 `UPDATE leave_requests
@@ -769,7 +815,9 @@ const reviewLeaveRequest = async (req, res) => {
                  WHERE leave_request_id = ?`,
                 [
                     req.user.user_id,
-                    typeof admin_comment === "string" ? admin_comment.trim() || null : null,
+                    typeof admin_comment === "string"
+                        ? admin_comment.trim() || null
+                        : null,
                     id
                 ]
             );
@@ -785,9 +833,18 @@ const reviewLeaveRequest = async (req, res) => {
             status: decision
         });
     } catch (error) {
-        if (connection) await connection.rollback();
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error("Leave approval rollback error:", rollbackError);
+            }
+        }
 
-        console.error("reviewLeaveRequest:", error);
+        console.error("reviewLeaveRequest error:", error);
+        console.error("Database error code:", error.code);
+        console.error("Database error message:", error.sqlMessage);
+
         return res.status(500).json({
             message: "Failed to review leave request."
         });
