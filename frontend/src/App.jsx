@@ -17,13 +17,17 @@ import AdminAttendance from "./pages/AdminAttendance";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import EmployeeLeave from "./pages/EmployeeLeave";
 import AdminLeave from "./pages/AdminLeave";
+import AdminReports from "./pages/AdminReports";
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
                 {/* Login page */}
-                <Route path="/" element={<Login />} />
+                <Route
+                    path="/"
+                    element={<Login />}
+                />
 
                 {/* Admin dashboard */}
                 <Route
@@ -59,11 +63,34 @@ function App() {
                     }
                 />
 
+                {/* Admin attendance */}
                 <Route
                     path="/attendance"
                     element={
                         <ProtectedRoute allowedRoles={["Admin"]}>
                             <AdminAttendance />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Admin leave management */}
+                <Route
+                    path="/admin-leave"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminLeave />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Admin reports */}
+                <Route
+                    path="/reports"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminDashboard>
+                            <AdminReports />
+                            </AdminDashboard>
                         </ProtectedRoute>
                     }
                 />
@@ -78,6 +105,7 @@ function App() {
                     }
                 />
 
+                {/* Employee profile */}
                 <Route
                     path="/employee-profile"
                     element={
@@ -87,6 +115,7 @@ function App() {
                     }
                 />
 
+                {/* Employee attendance */}
                 <Route
                     path="/employee-attendance"
                     element={
@@ -96,20 +125,12 @@ function App() {
                     }
                 />
 
+                {/* Employee leave */}
                 <Route
                     path="/employee-leave"
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
                             <EmployeeLeave />
-                        </ProtectedRoute>
-                    }
-                />
-
-                <Route
-                    path="/admin-leave"
-                    element={
-                        <ProtectedRoute allowedRoles={["Admin"]}>
-                            <AdminLeave />
                         </ProtectedRoute>
                     }
                 />

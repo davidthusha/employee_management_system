@@ -1,0 +1,313 @@
+
+.admin-reports {
+    width: 100%;
+    color: #1f2937;
+}
+
+.reports-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.reports-heading h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+}
+
+.reports-heading p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.reports-heading button,
+.reports-filters button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.reports-heading button:hover,
+.reports-filters button:hover {
+    background: #1d4ed8;
+}
+
+.reports-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 14px;
+    padding: 18px;
+    margin-bottom: 24px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.reports-filters label {
+    display: flex;
+    flex: 1 1 150px;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.reports-filters select,
+.reports-filters input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background: #fff;
+    color: #111827;
+}
+
+.reports-filters button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.reports-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.reports-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.reports-card span {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.reports-card strong {
+    font-size: 28px;
+}
+
+.reports-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.reports-table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.reports-table-wrapper th,
+.reports-table-wrapper td {
+    padding: 13px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.reports-table-wrapper th {
+    background: #f9fafb;
+    color: #374151;
+    font-size: 13px;
+}
+
+.reports-table-wrapper td {
+    font-size: 14px;
+}
+
+.reports-table-wrapper tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.reports-error {
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+}
+
+/* Print heading is hidden during normal screen display */
+.report-print-heading {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .reports-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .reports-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reports-filters label {
+        flex-basis: auto;
+    }
+}
+
+/* Print only the filtered report, not the dashboard webpage */
+@media print {
+    @page {
+        size: landscape;
+        margin: 12mm;
+    }
+
+    /* Hide everything on the page first */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* Make only the report area and its contents visible */
+    .report-print-area,
+    .report-print-area * {
+        visibility: visible !important;
+    }
+
+    /* Remove the report from the dashboard layout */
+    .report-print-area {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        background: #fff !important;
+        color: #000 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Show report title and selected filter information */
+    .report-print-heading {
+        display: block !important;
+        margin: 0 0 18px !important;
+        padding-bottom: 10px !important;
+        border-bottom: 1px solid #999 !important;
+        color: #000 !important;
+    }
+
+    .report-print-heading h1 {
+        margin: 0 0 10px !important;
+        font-size: 20px !important;
+        color: #000 !important;
+    }
+
+    .report-print-heading p {
+        margin: 4px 0 !important;
+        font-size: 10pt !important;
+        color: #000 !important;
+    }
+
+    /* Hide buttons, filters, errors, and other screen-only content */
+    .reports-screen-only {
+        display: none !important;
+    }
+
+    /* Keep the summary cards readable */
+    .reports-summary {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        margin: 0 0 16px !important;
+    }
+
+    .reports-card {
+        gap: 6px !important;
+        padding: 10px !important;
+        border: 1px solid #bbb !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        break-inside: avoid;
+    }
+
+    .reports-card span {
+        color: #333 !important;
+        font-size: 9pt !important;
+    }
+
+    .reports-card strong {
+        color: #000 !important;
+        font-size: 16pt !important;
+    }
+
+    /* Allow the entire table to print */
+    .reports-table-wrapper {
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        overflow: visible !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+    }
+
+    .reports-table-wrapper table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        table-layout: auto !important;
+        font-size: 9pt !important;
+        background: #fff !important;
+    }
+
+    .reports-table-wrapper thead {
+        display: table-header-group;
+    }
+
+    .reports-table-wrapper tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .reports-table-wrapper th,
+    .reports-table-wrapper td {
+        padding: 6px !important;
+        border: 1px solid #999 !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        color: #000 !important;
+        background: #fff !important;
+        font-size: 9pt !important;
+    }
+
+    .reports-table-wrapper th {
+        font-weight: 700 !important;
+        background: #eee !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .reports-table-wrapper tbody tr:last-child td {
+        border-bottom: 1px solid #999 !important;
+    }
+}
