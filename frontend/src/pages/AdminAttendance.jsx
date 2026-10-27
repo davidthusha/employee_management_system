@@ -1,7 +1,13 @@
+
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import AdminDashboard from "./AdminDashboard";
+import {
+    UsersRound,
+    AlarmClock,
+    CircleCheck,
+    CalendarOff
+} from "lucide-react";
 import api from "../services/api";
-import "../CSS/AdminDashboard.css";
 import "../CSS/AdminAttendance.css";
 
 const EMPTY_FORM = {
@@ -11,15 +17,6 @@ const EMPTY_FORM = {
     check_out: "",
     status: "Present"
 };
-
-const NAVIGATION = [
-    { label: "Dashboard", path: "/dashboard" },
-    { label: "Employees", path: "/employees" },
-    { label: "Departments", path: "/departments" },
-    { label: "Attendance", path: "/attendance" },
-    { label: "Leave Management", path: "/admin-leave" },
-    { label: "Reports", path: "/reports" }
-];
 
 function formatDate(value) {
     if (!value) return "—";
@@ -56,9 +53,7 @@ function statusLabel(record) {
         return "Present · Late";
     }
 
-    if (record.status === "Late") {
-        return "Present · Late";
-    }
+    if (record.status === "Late") return "Present · Late";
 
     return record.status || "—";
 }
@@ -78,34 +73,7 @@ function statusClass(status) {
     }
 }
 
-function getDisplayName(user) {
-    const fullName = [user?.first_name, user?.last_name]
-        .filter(name => typeof name === "string" && name.trim())
-        .map(name => name.trim())
-        .join(" ");
-
-    return (
-        user?.display_name ||
-        fullName ||
-        (user?.role === "Admin" ? "Administrator" : user?.username) ||
-        "User"
-    );
-}
-
-function AdminAttendance() {
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    let user = {};
-
-    try {
-        user = JSON.parse(localStorage.getItem("user") || "{}");
-    } catch {
-        user = {};
-    }
-
-    const displayName = getDisplayName(user);
-
+export default function AdminAttendance() {
     const [records, setRecords] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -135,6 +103,8 @@ function AdminAttendance() {
                 "Load employees error:",
                 err.response?.data || err.message
             );
+
+            setError("Unable to load employees.");
         }
     }, []);
 
@@ -145,13 +115,17 @@ function AdminAttendance() {
         try {
             const params = {};
 
-            if (filters.date) params.date = filters.date;
+            if (filters.date) {
+                params.date = filters.date;
+            }
 
             if (filters.employee_id) {
                 params.employee_id = filters.employee_id;
             }
 
-            if (filters.status) params.status = filters.status;
+            if (filters.status) {
+                params.status = filters.status;
+            }
 
             const response = await api.get("/attendance", { params });
 
@@ -231,12 +205,23 @@ function AdminAttendance() {
     const openCreateForm = () => {
         setEditingId(null);
 
-        const today = new Intl.DateTimeFormat("en-CA", {
+        const parts = new Intl.DateTimeFormat("en-CA", {
             timeZone: "Asia/Colombo",
             year: "numeric",
             month: "2-digit",
             day: "2-digit"
-        }).format(new Date());
+        }).formatToParts(new Date());
+
+        const dateParts = {};
+
+        parts.forEach(part => {
+            if (part.type !== "literal") {
+                dateParts[part.type] = part.value;
+            }
+        });
+
+        const today =
+            `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 
         setForm({
             ...EMPTY_FORM,
@@ -328,7 +313,7 @@ function AdminAttendance() {
             `Employee ${record.employee_id}`;
 
         const confirmed = window.confirm(
-            `Delete the attendance record for ${employeeName} on ${formatDate(record.attendance_date)}? This cannot be undone.`
+            `Are you sure you want to delete the attendance record for ${employeeName} on ${formatDate(record.attendance_date)}?`
         );
 
         if (!confirmed) return;
@@ -355,423 +340,384 @@ function AdminAttendance() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/", { replace: true });
-    };
-
     return (
-        <div className="dashboard">
-            <aside className="sidebar">
-                <div className="sidebar-logo">
-                    Employee Management
+        <AdminDashboard>
+            <div className="dashboard-welcome">
+                <div>
+                    <h1>Attendance Management</h1>
+                    <p>
+                        View, filter and manage employee attendance records.
+                    </p>
                 </div>
 
-                <nav className="sidebar-menu">
-                    {NAVIGATION.map(item => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={
-                                location.pathname === item.path
-                                    ? "active"
-                                    : ""
-                            }
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
-                </nav>
-            </aside>
+                <button
+                    type="button"
+                    className="admin-attendance-primary-button"
+                    onClick={openCreateForm}
+                >
+                    + Add Attendance
+                </button>
+            </div>
 
-            <main className="dashboard-main">
-                <header className="dashboard-header">
-                    <h2>Attendance Management</h2>
+            {error && (
+                <div className="dashboard-error" role="alert">
+                    {error}
+                </div>
+            )}
 
-                    <div className="user-section">
-                        <span className="user-name">
-                            {displayName}
-                        </span>
+            {success && (
+                <div className="admin-attendance-success" role="status">
+                    {success}
+                </div>
+            )}
 
-                        <button
-                            type="button"
-                            className="logout-button"
-                            onClick={handleLogout}
-                        >
-                            Logout
-                        </button>
+            {/* Attendance statistic cards */}
+            <div className="dashboard-cards admin-attendance-summary">
+                <div className="dashboard-card">
+                    <div className="dashboard-card-top">
+                        <div className="dashboard-card-icon employees-icon">
+                            <UsersRound size={23} strokeWidth={2} />
+                        </div>
                     </div>
-                </header>
 
-                <section className="dashboard-content">
-                    <div className="dashboard-welcome">
+                    <h3>Employees Present</h3>
+                    <p>{loading ? "..." : presentCount}</p>
+                    <span className="dashboard-card-note">
+                        Unique employees present, including late arrivals
+                    </span>
+                </div>
+
+                <div className="dashboard-card">
+                    <div className="dashboard-card-top">
+                        <div className="dashboard-card-icon attendance-icon">
+                            <AlarmClock size={23} strokeWidth={2} />
+                        </div>
+                    </div>
+
+                    <h3>Late Arrivals</h3>
+                    <p>{loading ? "..." : lateCount}</p>
+                    <span className="dashboard-card-note">
+                        Check-ins after 08:30 Sri Lanka time
+                    </span>
+                </div>
+
+                <div className="dashboard-card">
+                    <div className="dashboard-card-top">
+                        <div className="dashboard-card-icon active-icon">
+                            <CircleCheck size={23} strokeWidth={2} />
+                        </div>
+                    </div>
+
+                    <h3>Checked Out</h3>
+                    <p>{loading ? "..." : checkedOutCount}</p>
+                    <span className="dashboard-card-note">
+                        Records with a checkout time
+                    </span>
+                </div>
+
+                <div className="dashboard-card">
+                    <div className="dashboard-card-top">
+                        <div className="dashboard-card-icon departments-icon">
+                            <CalendarOff size={23} strokeWidth={2} />
+                        </div>
+                    </div>
+
+                    <h3>Leave Records</h3>
+                    <p>{loading ? "..." : leaveCount}</p>
+                    <span className="dashboard-card-note">
+                        {absentCount} absent · {leaveCount} on leave
+                    </span>
+                </div>
+            </div>
+
+            {/* Attendance filters */}
+            <div className="dashboard-recent admin-attendance-panel">
+                <div className="dashboard-section-header">
+                    <div>
+                        <h2>Filter Attendance</h2>
+                        <p>
+                            Filter by date, employee or attendance status.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="admin-attendance-filters">
+                    <label>
+                        Attendance Date
+                        <input
+                            type="date"
+                            name="date"
+                            value={filters.date}
+                            onChange={handleFilterChange}
+                        />
+                    </label>
+
+                    <label>
+                        Employee
+                        <select
+                            name="employee_id"
+                            value={filters.employee_id}
+                            onChange={handleFilterChange}
+                        >
+                            <option value="">All employees</option>
+                            {employees.map(employee => (
+                                <option
+                                    key={employee.employee_id}
+                                    value={employee.employee_id}
+                                >
+                                    {employee.first_name} {employee.last_name}
+                                    {employee.employee_code
+                                        ? ` (${employee.employee_code})`
+                                        : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label>
+                        Status
+                        <select
+                            name="status"
+                            value={filters.status}
+                            onChange={handleFilterChange}
+                        >
+                            <option value="">All statuses</option>
+                            <option value="Present">Present</option>
+                            <option value="Late">Late (legacy records)</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Leave">Leave</option>
+                        </select>
+                    </label>
+
+                    <button
+                        type="button"
+                        className="admin-attendance-secondary-button"
+                        onClick={resetFilters}
+                    >
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
+
+            {/* Add / Edit attendance form */}
+            {showForm && (
+                <div className="dashboard-recent admin-attendance-panel">
+                    <div className="dashboard-section-header">
                         <div>
-                            <h1>Attendance Management</h1>
-                            <p>
-                                View, filter and manage employee attendance records.
-                            </p>
+                            <h2>
+                                {editingId ? "Edit Attendance" : "Add Attendance"}
+                            </h2>
+                            <p>Enter the employee's attendance details.</p>
                         </div>
 
                         <button
                             type="button"
-                            className="admin-attendance-primary-button"
-                            onClick={openCreateForm}
+                            className="admin-attendance-secondary-button"
+                            onClick={() => {
+                                setShowForm(false);
+                                setEditingId(null);
+                                setForm(EMPTY_FORM);
+                            }}
                         >
-                            + Add Attendance
+                            Cancel
                         </button>
                     </div>
 
-                    {error && (
-                        <div className="dashboard-error" role="alert">
-                            {error}
-                        </div>
-                    )}
-
-                    {success && (
-                        <div
-                            className="admin-attendance-success"
-                            role="status"
-                        >
-                            {success}
-                        </div>
-                    )}
-
-                    <div className="dashboard-cards admin-attendance-summary">
-                        <div className="dashboard-card">
-                            <div className="dashboard-card-icon employees-icon">
-                                👥
-                            </div>
-                            <h3>Employees Present</h3>
-                            <p>{loading ? "..." : presentCount}</p>
-                            <span className="dashboard-card-note">
-                                Unique employees present, including late arrivals
-                            </span>
-                        </div>
-
-                        <div className="dashboard-card">
-                            <div className="dashboard-card-icon attendance-icon">
-                                ⏰
-                            </div>
-                            <h3>Late Arrivals</h3>
-                            <p>{loading ? "..." : lateCount}</p>
-                            <span className="dashboard-card-note">
-                                Check-ins after 08:30 Sri Lanka time
-                            </span>
-                        </div>
-
-                        <div className="dashboard-card">
-                            <div className="dashboard-card-icon active-icon">
-                                ✓
-                            </div>
-                            <h3>Checked Out</h3>
-                            <p>{loading ? "..." : checkedOutCount}</p>
-                            <span className="dashboard-card-note">
-                                Records with a checkout time
-                            </span>
-                        </div>
-
-                        <div className="dashboard-card">
-                            <div className="dashboard-card-icon departments-icon">
-                                📴
-                            </div>
-                            <h3>Leave Records</h3>
-                            <p>{loading ? "..." : leaveCount}</p>
-                            <span className="dashboard-card-note">
-                                {absentCount} absent · {leaveCount} on leave
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="dashboard-recent admin-attendance-panel">
-                        <div className="dashboard-section-header">
-                            <div>
-                                <h2>Filter Attendance</h2>
-                                <p>
-                                    Filter by date, employee or attendance status.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="admin-attendance-filters">
-                            <label>
-                                Attendance Date
-                                <input
-                                    type="date"
-                                    name="date"
-                                    value={filters.date}
-                                    onChange={handleFilterChange}
-                                />
-                            </label>
-
-                            <label>
-                                Employee
-                                <select
-                                    name="employee_id"
-                                    value={filters.employee_id}
-                                    onChange={handleFilterChange}
-                                >
-                                    <option value="">All employees</option>
-                                    {employees.map(employee => (
-                                        <option
-                                            key={employee.employee_id}
-                                            value={employee.employee_id}
-                                        >
-                                            {employee.first_name} {employee.last_name}
-                                            {employee.employee_code
-                                                ? ` (${employee.employee_code})`
-                                                : ""}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-
-                            <label>
-                                Status
-                                <select
-                                    name="status"
-                                    value={filters.status}
-                                    onChange={handleFilterChange}
-                                >
-                                    <option value="">All statuses</option>
-                                    <option value="Present">Present</option>
-                                    <option value="Late">Late (legacy records)</option>
-                                    <option value="Absent">Absent</option>
-                                    <option value="Leave">Leave</option>
-                                </select>
-                            </label>
-
-                            <button
-                                type="button"
-                                className="admin-attendance-secondary-button"
-                                onClick={resetFilters}
+                    <form
+                        className="admin-attendance-form"
+                        onSubmit={handleSubmit}
+                    >
+                        <label>
+                            Employee *
+                            <select
+                                name="employee_id"
+                                value={form.employee_id}
+                                onChange={handleFormChange}
+                                required
                             >
-                                Clear Filters
+                                <option value="">Select employee</option>
+                                {employees.map(employee => (
+                                    <option
+                                        key={employee.employee_id}
+                                        value={employee.employee_id}
+                                    >
+                                        {employee.first_name} {employee.last_name}
+                                        {employee.employee_code
+                                            ? ` (${employee.employee_code})`
+                                            : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label>
+                            Attendance Date *
+                            <input
+                                type="date"
+                                name="attendance_date"
+                                value={form.attendance_date}
+                                onChange={handleFormChange}
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Check-in Time
+                            <input
+                                type="time"
+                                name="check_in"
+                                value={form.check_in}
+                                onChange={handleFormChange}
+                            />
+                        </label>
+
+                        <label>
+                            Check-out Time
+                            <input
+                                type="time"
+                                name="check_out"
+                                value={form.check_out}
+                                onChange={handleFormChange}
+                            />
+                        </label>
+
+                        <label>
+                            Attendance Status *
+                            <select
+                                name="status"
+                                value={form.status}
+                                onChange={handleFormChange}
+                                required
+                            >
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                                <option value="Late">Late</option>
+                                <option value="Leave">Leave</option>
+                            </select>
+                        </label>
+
+                        <div className="admin-attendance-form-actions">
+                            <button
+                                type="submit"
+                                className="admin-attendance-primary-button"
+                                disabled={saving}
+                            >
+                                {saving
+                                    ? "Saving..."
+                                    : editingId
+                                        ? "Save Changes"
+                                        : "Create Record"}
                             </button>
                         </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Attendance records table */}
+            <div className="dashboard-recent">
+                <div className="dashboard-section-header">
+                    <div>
+                        <h2>Attendance Records</h2>
+                        <p>
+                            {records.length} record(s) match the current filters.
+                        </p>
                     </div>
 
-                    {showForm && (
-                        <div className="dashboard-recent admin-attendance-panel">
-                            <div className="dashboard-section-header">
-                                <div>
-                                    <h2>
-                                        {editingId
-                                            ? "Edit Attendance"
-                                            : "Add Attendance"}
-                                    </h2>
-                                    <p>
-                                        Enter the employee's attendance details.
-                                    </p>
-                                </div>
+                    <button
+                        type="button"
+                        className="admin-attendance-secondary-button"
+                        disabled={loading}
+                        onClick={loadAttendance}
+                    >
+                        Refresh
+                    </button>
+                </div>
 
-                                <button
-                                    type="button"
-                                    className="admin-attendance-secondary-button"
-                                    onClick={() => {
-                                        setShowForm(false);
-                                        setEditingId(null);
-                                        setForm(EMPTY_FORM);
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                <div className="dashboard-table-container">
+                    <table className="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Employee</th>
+                                <th>Employee Code</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
 
-                            <form
-                                className="admin-attendance-form"
-                                onSubmit={handleSubmit}
-                            >
-                                <label>
-                                    Employee *
-                                    <select
-                                        name="employee_id"
-                                        value={form.employee_id}
-                                        onChange={handleFormChange}
-                                        required
-                                    >
-                                        <option value="">Select employee</option>
-                                        {employees.map(employee => (
-                                            <option
-                                                key={employee.employee_id}
-                                                value={employee.employee_id}
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="dashboard-empty">
+                                        Loading attendance records...
+                                    </td>
+                                </tr>
+                            ) : records.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="dashboard-empty">
+                                        No attendance records found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                records.map(record => (
+                                    <tr key={record.attendance_id}>
+                                        <td>
+                                            {formatDate(record.attendance_date)}
+                                        </td>
+
+                                        <td>
+                                            <div className="dashboard-employee">
+                                                <strong>
+                                                    {`${record.first_name || ""} ${record.last_name || ""}`.trim() ||
+                                                        "Unknown employee"}
+                                                </strong>
+                                            </div>
+                                        </td>
+
+                                        <td>{record.employee_code || "—"}</td>
+                                        <td>{formatTime(record.check_in)}</td>
+                                        <td>{formatTime(record.check_out)}</td>
+
+                                        <td>
+                                            <span
+                                                className={`dashboard-status ${statusClass(record.status)}`}
                                             >
-                                                {employee.first_name} {employee.last_name}
-                                                {employee.employee_code
-                                                    ? ` (${employee.employee_code})`
-                                                    : ""}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                                {statusLabel(record)}
+                                            </span>
+                                        </td>
 
-                                <label>
-                                    Attendance Date *
-                                    <input
-                                        type="date"
-                                        name="attendance_date"
-                                        value={form.attendance_date}
-                                        onChange={handleFormChange}
-                                        required
-                                    />
-                                </label>
+                                        <td className="admin-attendance-actions-cell">
+                                            <div className="admin-attendance-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="admin-attendance-icon-button admin-attendance-edit-icon"
+                                                    title="Edit attendance"
+                                                    aria-label={`Edit attendance for ${record.employee_code || record.employee_id}`}
+                                                    onClick={() => openEditForm(record)}
+                                                >
+                                                    ✏️
+                                                </button>
 
-                                <label>
-                                    Check-in Time
-                                    <input
-                                        type="time"
-                                        name="check_in"
-                                        value={form.check_in}
-                                        onChange={handleFormChange}
-                                    />
-                                </label>
-
-                                <label>
-                                    Check-out Time
-                                    <input
-                                        type="time"
-                                        name="check_out"
-                                        value={form.check_out}
-                                        onChange={handleFormChange}
-                                    />
-                                </label>
-
-                                <label>
-                                    Attendance Status *
-                                    <select
-                                        name="status"
-                                        value={form.status}
-                                        onChange={handleFormChange}
-                                        required
-                                    >
-                                        <option value="Present">Present</option>
-                                        <option value="Absent">Absent</option>
-                                        <option value="Late">Late</option>
-                                        <option value="Leave">Leave</option>
-                                    </select>
-                                </label>
-
-                                <div className="admin-attendance-form-actions">
-                                    <button
-                                        type="submit"
-                                        className="admin-attendance-primary-button"
-                                        disabled={saving}
-                                    >
-                                        {saving
-                                            ? "Saving..."
-                                            : editingId
-                                                ? "Save Changes"
-                                                : "Create Record"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    <div className="dashboard-recent">
-                        <div className="dashboard-section-header">
-                            <div>
-                                <h2>Attendance Records</h2>
-                                <p>
-                                    {records.length} record(s) match the current filters.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="admin-attendance-secondary-button"
-                                disabled={loading}
-                                onClick={loadAttendance}
-                            >
-                                Refresh
-                            </button>
-                        </div>
-
-                        <div className="dashboard-table-container">
-                            <table className="dashboard-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Employee</th>
-                                        <th>Employee Code</th>
-                                        <th>Check In</th>
-                                        <th>Check Out</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                                <button
+                                                    type="button"
+                                                    className="admin-attendance-icon-button admin-attendance-delete-icon"
+                                                    title="Delete attendance"
+                                                    aria-label={`Delete attendance for ${record.employee_code || record.employee_id}`}
+                                                    onClick={() => handleDelete(record)}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-
-                                <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="7" className="dashboard-empty">
-                                                Loading attendance records...
-                                            </td>
-                                        </tr>
-                                    ) : records.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="7" className="dashboard-empty">
-                                                No attendance records found.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        records.map(record => (
-                                            <tr key={record.attendance_id}>
-                                                <td>
-                                                    {formatDate(record.attendance_date)}
-                                                </td>
-
-                                                <td>
-                                                    <div className="dashboard-employee">
-                                                        <strong>
-                                                            {`${record.first_name || ""} ${record.last_name || ""}`.trim() ||
-                                                                "Unknown employee"}
-                                                        </strong>
-                                                    </div>
-                                                </td>
-
-                                                <td>{record.employee_code || "—"}</td>
-                                                <td>{formatTime(record.check_in)}</td>
-                                                <td>{formatTime(record.check_out)}</td>
-
-                                                <td>
-                                                    <span
-                                                        className={`dashboard-status ${statusClass(record.status)}`}
-                                                    >
-                                                        {statusLabel(record)}
-                                                    </span>
-                                                </td>
-
-                                                <td>
-                                                    <div className="admin-attendance-row-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="admin-attendance-edit-button"
-                                                            onClick={() => openEditForm(record)}
-                                                        >
-                                                            Edit
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className="admin-attendance-delete-button"
-                                                            onClick={() => handleDelete(record)}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </AdminDashboard>
     );
 }
-
-export default AdminAttendance;

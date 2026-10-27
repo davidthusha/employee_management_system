@@ -29,43 +29,35 @@ function Employees() {
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
 
-    // Add/edit employee popup
     const [modalOpen, setModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState(initialForm);
+    const [form, setForm] = useState({ ...initialForm });
 
-    // Login account popup
     const [accountEmployee, setAccountEmployee] = useState(null);
-    const [accountForm, setAccountForm] = useState(initialAccountForm);
+    const [accountForm, setAccountForm] = useState({ ...initialAccountForm });
     const [accountSaving, setAccountSaving] = useState(false);
     const [accountError, setAccountError] = useState("");
 
-    // Messages
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    // Load employees and normalise account status
     const loadEmployees = async () => {
         setLoading(true);
 
         try {
             const response = await api.get("/employees");
 
-            console.log("Employees API response:", response.data);
-
             const employeeData = response.data.map((employee) => {
-                const accountFlag = employee.has_login_account;
-
+                const flag = employee.has_login_account;
                 let hasLoginAccount = null;
 
-                if (accountFlag === 1 || accountFlag === "1" ||
-                    accountFlag === true) {
+                if (flag === 1 || flag === "1" || flag === true) {
                     hasLoginAccount = 1;
                 } else if (
-                    accountFlag === 0 ||
-                    accountFlag === "0" ||
-                    accountFlag === false
+                    flag === 0 ||
+                    flag === "0" ||
+                    flag === false
                 ) {
                     hasLoginAccount = 0;
                 }
@@ -76,19 +68,10 @@ function Employees() {
                 };
             });
 
-            console.table(
-                employeeData.map((employee) => ({
-                    employee_code: employee.employee_code,
-                    name: `${employee.first_name} ${employee.last_name}`,
-                    has_login_account: employee.has_login_account
-                }))
-            );
-
             setEmployees(employeeData);
             setError("");
         } catch (err) {
             console.error("Failed to load employees:", err);
-
             setError(
                 err.response?.data?.message ||
                 "Could not load employees. Check your login and backend."
@@ -98,7 +81,6 @@ function Employees() {
         }
     };
 
-    // Load departments
     const loadDepartments = async () => {
         try {
             const response = await api.get("/departments");
@@ -113,7 +95,6 @@ function Employees() {
         loadDepartments();
     }, []);
 
-    // Open Add Employee popup
     const openModal = () => {
         setEditingEmployee(null);
         setForm({ ...initialForm });
@@ -122,7 +103,6 @@ function Employees() {
         setModalOpen(true);
     };
 
-    // Open Edit Employee popup
     const handleEdit = (employee) => {
         setEditingEmployee(employee);
 
@@ -151,15 +131,12 @@ function Employees() {
         setModalOpen(true);
     };
 
-    // Close employee popup
     const closeModal = () => {
         if (saving) return;
-
         setModalOpen(false);
         setError("");
     };
 
-    // Handle employee form changes
     const handleChange = (event) => {
         const { name, value } = event.target;
 
@@ -169,7 +146,6 @@ function Employees() {
         }));
     };
 
-    // Add or update employee
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -192,7 +168,6 @@ function Employees() {
                     `/employees/${editingEmployee.employee_id}`,
                     payload
                 );
-
                 setSuccess("Employee updated successfully.");
             } else {
                 await api.post("/employees", payload);
@@ -202,7 +177,6 @@ function Employees() {
             setModalOpen(false);
             setEditingEmployee(null);
             setForm({ ...initialForm });
-            setError("");
 
             await loadEmployees();
         } catch (err) {
@@ -217,7 +191,6 @@ function Employees() {
         }
     };
 
-    // Delete employee
     const handleDelete = async (employee) => {
         const confirmed = window.confirm(
             `Are you sure you want to delete ${employee.first_name} ${employee.last_name}?`
@@ -230,7 +203,6 @@ function Employees() {
 
         try {
             await api.delete(`/employees/${employee.employee_id}`);
-
             setSuccess("Employee deleted successfully.");
             await loadEmployees();
         } catch (err) {
@@ -241,9 +213,7 @@ function Employees() {
         }
     };
 
-    // Open Create Login Account popup
     const openAccountModal = (employee) => {
-        // Do not open if an account already exists.
         if (employee.has_login_account !== 0) {
             setSuccess(
                 employee.has_login_account === 1
@@ -254,7 +224,6 @@ function Employees() {
         }
 
         setAccountEmployee(employee);
-
         setAccountForm({
             ...initialAccountForm,
             username: employee.employee_code
@@ -267,7 +236,6 @@ function Employees() {
         setSuccess("");
     };
 
-    // Close Create Login Account popup
     const closeAccountModal = () => {
         if (accountSaving) return;
 
@@ -276,7 +244,6 @@ function Employees() {
         setAccountError("");
     };
 
-    // Handle login account form changes
     const handleAccountChange = (event) => {
         const { name, value } = event.target;
 
@@ -286,7 +253,6 @@ function Employees() {
         }));
     };
 
-    // Create login account for an existing employee
     const handleCreateAccount = async (event) => {
         event.preventDefault();
 
@@ -341,7 +307,6 @@ function Employees() {
                 `Login account created successfully for ${employeeName}.`
             );
 
-            // Reload the employee list and account flags.
             await loadEmployees();
         } catch (err) {
             setAccountError(
@@ -353,7 +318,6 @@ function Employees() {
         }
     };
 
-    // Search employees
     const filteredEmployees = employees.filter((employee) => {
         const query = search.toLowerCase();
 
@@ -370,12 +334,14 @@ function Employees() {
     });
 
     return (
-        <div className="page">
-            {/* Page header */}
-            <div className="page-header">
-                <div>
+        <div className="page employee-page">
+            {/* Title banner matching Attendance and Leave Requests */}
+            <section className="employee-hero">
+                <div className="employee-hero-text">
                     <h1>Employees</h1>
-                    <p>Manage employee information</p>
+                    <p>
+                        Manage employee information, departments and login accounts.
+                    </p>
                 </div>
 
                 <button
@@ -385,16 +351,14 @@ function Employees() {
                 >
                     + Add Employee
                 </button>
-            </div>
+            </section>
 
-            {/* Success message */}
             {success && (
                 <div className="success-message" role="status">
                     {success}
                 </div>
             )}
 
-            {/* Page error */}
             {error && !modalOpen && !accountEmployee && (
                 <div className="error-message" role="alert">
                     {error}
@@ -408,6 +372,7 @@ function Employees() {
                     placeholder="Search by name, code, email..."
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
+                    aria-label="Search employees"
                 />
             </div>
 
@@ -440,22 +405,13 @@ function Employees() {
                                 filteredEmployees.map((employee) => (
                                     <tr key={employee.employee_id}>
                                         <td>{employee.employee_code}</td>
-
                                         <td>
                                             {employee.first_name}{" "}
                                             {employee.last_name}
                                         </td>
-
                                         <td>{employee.email}</td>
-
-                                        <td>
-                                            {employee.department_name || "-"}
-                                        </td>
-
-                                        <td>
-                                            {employee.job_title || "-"}
-                                        </td>
-
+                                        <td>{employee.department_name || "-"}</td>
+                                        <td>{employee.job_title || "-"}</td>
                                         <td>
                                             <span
                                                 className={`status ${
@@ -469,7 +425,6 @@ function Employees() {
                                         </td>
 
                                         <td className="employee-actions">
-                                            {/* Show only when the API confirms no account */}
                                             {employee.has_login_account === 0 && (
                                                 <button
                                                     type="button"
@@ -484,28 +439,22 @@ function Employees() {
                                                 </button>
                                             )}
 
-                                            {/* Edit */}
                                             <button
                                                 type="button"
                                                 className="icon-button edit-icon"
                                                 title="Edit employee"
                                                 aria-label={`Edit ${employee.first_name} ${employee.last_name}`}
-                                                onClick={() =>
-                                                    handleEdit(employee)
-                                                }
+                                                onClick={() => handleEdit(employee)}
                                             >
                                                 ✏️
                                             </button>
 
-                                            {/* Delete */}
                                             <button
                                                 type="button"
                                                 className="icon-button delete-icon"
                                                 title="Delete employee"
                                                 aria-label={`Delete ${employee.first_name} ${employee.last_name}`}
-                                                onClick={() =>
-                                                    handleDelete(employee)
-                                                }
+                                                onClick={() => handleDelete(employee)}
                                             >
                                                 🗑️
                                             </button>
@@ -518,7 +467,7 @@ function Employees() {
                 )}
             </div>
 
-            {/* Add/Edit Employee popup */}
+            {/* Add/Edit Employee modal */}
             {modalOpen && (
                 <div
                     className="modal-overlay"
@@ -541,7 +490,6 @@ function Employees() {
                                         ? "Edit Employee"
                                         : "Add Employee"}
                                 </h2>
-
                                 <p>
                                     {editingEmployee
                                         ? "Update the employee's details below."
@@ -590,9 +538,7 @@ function Employees() {
                                 </div>
 
                                 <div className="form-field">
-                                    <label htmlFor="first_name">
-                                        First Name *
-                                    </label>
+                                    <label htmlFor="first_name">First Name *</label>
                                     <input
                                         id="first_name"
                                         name="first_name"
@@ -605,9 +551,7 @@ function Employees() {
                                 </div>
 
                                 <div className="form-field">
-                                    <label htmlFor="last_name">
-                                        Last Name *
-                                    </label>
+                                    <label htmlFor="last_name">Last Name *</label>
                                     <input
                                         id="last_name"
                                         name="last_name"
@@ -647,19 +591,14 @@ function Employees() {
                                 </div>
 
                                 <div className="form-field">
-                                    <label htmlFor="department_id">
-                                        Department
-                                    </label>
+                                    <label htmlFor="department_id">Department</label>
                                     <select
                                         id="department_id"
                                         name="department_id"
                                         value={form.department_id}
                                         onChange={handleChange}
                                     >
-                                        <option value="">
-                                            No department
-                                        </option>
-
+                                        <option value="">No department</option>
                                         {departments.map((department) => (
                                             <option
                                                 key={department.department_id}
@@ -737,7 +676,6 @@ function Employees() {
                                 >
                                     Cancel
                                 </button>
-
                                 <button
                                     type="submit"
                                     className="primary-button"
@@ -755,7 +693,7 @@ function Employees() {
                 </div>
             )}
 
-            {/* Create Login Account popup */}
+            {/* Create Login Account modal */}
             {accountEmployee && (
                 <div
                     className="modal-overlay"
@@ -776,7 +714,6 @@ function Employees() {
                                 <h2 id="account-modal-title">
                                     Create Login Account
                                 </h2>
-
                                 <p>
                                     Create login credentials for{" "}
                                     <strong>
@@ -803,7 +740,6 @@ function Employees() {
                                     <label htmlFor="account-username">
                                         Username *
                                     </label>
-
                                     <input
                                         id="account-username"
                                         name="username"
@@ -821,7 +757,6 @@ function Employees() {
                                     <label htmlFor="account-password">
                                         Temporary Password *
                                     </label>
-
                                     <input
                                         id="account-password"
                                         name="password"
@@ -839,7 +774,6 @@ function Employees() {
                                     <label htmlFor="account-confirm-password">
                                         Confirm Password *
                                     </label>
-
                                     <input
                                         id="account-confirm-password"
                                         name="confirmPassword"
@@ -869,7 +803,6 @@ function Employees() {
                                 >
                                     Cancel
                                 </button>
-
                                 <button
                                     type="submit"
                                     className="primary-button"

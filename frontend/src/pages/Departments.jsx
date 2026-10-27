@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import AdminDashboard from "./AdminDashboard";
 import "../CSS/Department.css";
 
 const initialForm = {
@@ -14,7 +15,7 @@ function Departments() {
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState(null);
-    const [form, setForm] = useState(initialForm);
+    const [form, setForm] = useState({ ...initialForm });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -25,6 +26,7 @@ function Departments() {
         try {
             const response = await api.get("/departments");
             setDepartments(response.data);
+            setError("");
         } catch (err) {
             setError(
                 err.response?.data?.message ||
@@ -41,7 +43,7 @@ function Departments() {
 
     const openAddModal = () => {
         setEditingDepartment(null);
-        setForm(initialForm);
+        setForm({ ...initialForm });
         setError("");
         setSuccess("");
         setModalOpen(true);
@@ -65,7 +67,7 @@ function Departments() {
 
         setModalOpen(false);
         setEditingDepartment(null);
-        setForm(initialForm);
+        setForm({ ...initialForm });
         setError("");
     };
 
@@ -94,34 +96,35 @@ function Departments() {
         setSaving(true);
 
         try {
+            const payload = {
+                department_name: departmentName,
+                description: form.description.trim() || null
+            };
+
             if (editingDepartment) {
                 await api.put(
                     `/departments/${editingDepartment.department_id}`,
-                    {
-                        department_name: departmentName,
-                        description: form.description.trim() || null
-                    }
+                    payload
                 );
 
                 setSuccess("Department updated successfully.");
             } else {
-                await api.post("/departments", {
-                    department_name: departmentName,
-                    description: form.description.trim() || null
-                });
+                await api.post("/departments", payload);
 
                 setSuccess("Department created successfully.");
             }
 
             setModalOpen(false);
             setEditingDepartment(null);
-            setForm(initialForm);
+            setForm({ ...initialForm });
 
             await loadDepartments();
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                `Failed to ${editingDepartment ? "update" : "create"} department.`
+                `Failed to ${
+                    editingDepartment ? "update" : "create"
+                } department.`
             );
         } finally {
             setSaving(false);
@@ -158,245 +161,276 @@ function Departments() {
         const query = search.toLowerCase();
 
         return [
+            department.department_id,
             department.department_name,
             department.description
         ].some((value) =>
-            String(value || "").toLowerCase().includes(query)
+            String(value ?? "").toLowerCase().includes(query)
         );
     });
 
     return (
-        <div className="departments-page">
-            <div className="departments-header">
-                <div>
-                    <h1>Departments</h1>
-                    <p>Manage your organization's departments</p>
-                </div>
+        <AdminDashboard>
+            <div className="departments-page">
 
-                <button
-                    type="button"
-                    className="department-primary-button"
-                    onClick={openAddModal}
-                >
-                    + Add Department
-                </button>
-            </div>
+                {/* Page title banner */}
+                <section className="department-hero">
+                    <div className="department-hero-text">
+                        <h1>Departments</h1>
+                        <p>
+                            Manage your organization's departments.
+                        </p>
+                    </div>
 
-            {success && (
-                <div className="department-success" role="status">
-                    {success}
-                </div>
-            )}
+                    <button
+                        type="button"
+                        className="department-primary-button"
+                        onClick={openAddModal}
+                    >
+                        + Add Department
+                    </button>
+                </section>
 
-            {error && !modalOpen && (
-                <div className="department-error" role="alert">
-                    {error}
-                </div>
-            )}
+                {/* Success message */}
+                {success && (
+                    <div
+                        className="department-success"
+                        role="status"
+                    >
+                        {success}
+                    </div>
+                )}
 
-            <div className="departments-table-card">
-                <div className="departments-toolbar">
-                    <input
-                        type="search"
-                        placeholder="Search departments..."
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                    />
-                </div>
+                {/* Error message */}
+                {error && !modalOpen && (
+                    <div
+                        className="department-error"
+                        role="alert"
+                    >
+                        {error}
+                    </div>
+                )}
 
-                <div className="departments-table-wrapper">
-                    <table className="departments-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Department Name</th>
-                                <th>Description</th>
-                                <th>Created At</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
+                {/* Department table */}
+                <div className="departments-table-card">
+                    <div className="departments-toolbar">
+                        <input
+                            type="search"
+                            placeholder="Search departments..."
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
+                            aria-label="Search departments"
+                        />
+                    </div>
 
-                        <tbody>
-                            {loading ? (
+                    <div className="departments-table-wrapper">
+                        <table className="departments-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan="5" className="department-empty">
-                                        Loading departments...
-                                    </td>
+                                    <th>ID</th>
+                                    <th>Department Name</th>
+                                    <th>Description</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
                                 </tr>
-                            ) : filteredDepartments.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5" className="department-empty">
-                                        {search
-                                            ? "No matching departments found."
-                                            : "No departments found. Add your first department."}
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredDepartments.map((department) => (
-                                    <tr key={department.department_id}>
-                                        <td>DEP{String(
-                                            department.department_id
-                                        ).padStart(3, "0")}</td>
+                            </thead>
 
-                                        <td className="department-name-cell">
-                                            {department.department_name}
-                                        </td>
-
-                                        <td>
-                                            {department.description || "-"}
-                                        </td>
-
-                                        <td>
-                                            {department.created_at
-                                                ? new Date(
-                                                    department.created_at
-                                                ).toLocaleDateString()
-                                                : "-"}
-                                        </td>
-
-                                        <td className="department-actions">
-                                            <button
-                                                type="button"
-                                                className="department-icon-button department-edit-button"
-                                                title="Edit department"
-                                                aria-label={`Edit ${department.department_name}`}
-                                                onClick={() =>
-                                                    openEditModal(department)
-                                                }
-                                            >
-                                                ✏️
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                className="department-icon-button department-delete-button"
-                                                title="Delete department"
-                                                aria-label={`Delete ${department.department_name}`}
-                                                onClick={() =>
-                                                    handleDelete(department)
-                                                }
-                                            >
-                                                🗑️
-                                            </button>
+                            <tbody>
+                                {loading ? (
+                                    <tr>
+                                        <td
+                                            colSpan="5"
+                                            className="department-empty"
+                                        >
+                                            Loading departments...
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                ) : filteredDepartments.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan="5"
+                                            className="department-empty"
+                                        >
+                                            {search
+                                                ? "No matching departments found."
+                                                : "No departments found. Add your first department."}
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredDepartments.map((department) => (
+                                        <tr
+                                            key={department.department_id}
+                                        >
+                                            <td>
+                                                DEP
+                                                {String(
+                                                    department.department_id
+                                                ).padStart(3, "0")}
+                                            </td>
 
-            {modalOpen && (
-                <div
-                    className="department-modal-overlay"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) {
-                            closeModal();
-                        }
-                    }}
-                >
-                    <div
-                        className="department-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="department-modal-title"
-                    >
-                        <div className="department-modal-header">
-                            <div>
-                                <h2 id="department-modal-title">
-                                    {editingDepartment
-                                        ? "Edit Department"
-                                        : "Add Department"}
-                                </h2>
+                                            <td className="department-name-cell">
+                                                {department.department_name}
+                                            </td>
 
-                                <p>
-                                    {editingDepartment
-                                        ? "Update the department details."
-                                        : "Enter the new department details."}
-                                </p>
-                            </div>
+                                            <td>
+                                                {department.description || "-"}
+                                            </td>
 
-                            <button
-                                type="button"
-                                className="department-modal-close"
-                                onClick={closeModal}
-                                disabled={saving}
-                                aria-label="Close"
-                            >
-                                ×
-                            </button>
-                        </div>
+                                            <td>
+                                                {department.created_at
+                                                    ? new Date(
+                                                        department.created_at
+                                                    ).toLocaleDateString()
+                                                    : "-"}
+                                            </td>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="department-form-field">
-                                <label htmlFor="department_name">
-                                    Department Name *
-                                </label>
+                                            <td className="department-actions">
+                                                <button
+                                                    type="button"
+                                                    className="department-icon-button department-edit-button"
+                                                    title="Edit department"
+                                                    aria-label={`Edit ${department.department_name}`}
+                                                    onClick={() =>
+                                                        openEditModal(department)
+                                                    }
+                                                >
+                                                    ✏️
+                                                </button>
 
-                                <input
-                                    id="department_name"
-                                    name="department_name"
-                                    value={form.department_name}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Human Resources"
-                                    maxLength={100}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="department-form-field">
-                                <label htmlFor="description">
-                                    Description
-                                </label>
-
-                                <textarea
-                                    id="description"
-                                    name="description"
-                                    value={form.description}
-                                    onChange={handleChange}
-                                    placeholder="Enter department responsibilities..."
-                                    rows={4}
-                                />
-                            </div>
-
-                            {error && (
-                                <div
-                                    className="department-error"
-                                    role="alert"
-                                >
-                                    {error}
-                                </div>
-                            )}
-
-                            <div className="department-modal-actions">
-                                <button
-                                    type="button"
-                                    className="department-secondary-button"
-                                    onClick={closeModal}
-                                    disabled={saving}
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    className="department-primary-button"
-                                    disabled={saving}
-                                >
-                                    {saving
-                                        ? "Saving..."
-                                        : editingDepartment
-                                            ? "Save Changes"
-                                            : "Save Department"}
-                                </button>
-                            </div>
-                        </form>
+                                                <button
+                                                    type="button"
+                                                    className="department-icon-button department-delete-button"
+                                                    title="Delete department"
+                                                    aria-label={`Delete ${department.department_name}`}
+                                                    onClick={() =>
+                                                        handleDelete(department)
+                                                    }
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            )}
-        </div>
+
+                {/* Add/Edit Department modal */}
+                {modalOpen && (
+                    <div
+                        className="department-modal-overlay"
+                        onMouseDown={(event) => {
+                            if (event.target === event.currentTarget) {
+                                closeModal();
+                            }
+                        }}
+                    >
+                        <div
+                            className="department-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="department-modal-title"
+                        >
+                            <div className="department-modal-header">
+                                <div>
+                                    <h2 id="department-modal-title">
+                                        {editingDepartment
+                                            ? "Edit Department"
+                                            : "Add Department"}
+                                    </h2>
+
+                                    <p>
+                                        {editingDepartment
+                                            ? "Update the department details."
+                                            : "Enter the new department details."}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="department-modal-close"
+                                    onClick={closeModal}
+                                    disabled={saving}
+                                    aria-label="Close"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit}>
+                                <div className="department-form-field">
+                                    <label htmlFor="department_name">
+                                        Department Name *
+                                    </label>
+
+                                    <input
+                                        id="department_name"
+                                        name="department_name"
+                                        value={form.department_name}
+                                        onChange={handleChange}
+                                        placeholder="e.g. Human Resources"
+                                        maxLength={100}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className="department-form-field">
+                                    <label htmlFor="description">
+                                        Description
+                                    </label>
+
+                                    <textarea
+                                        id="description"
+                                        name="description"
+                                        value={form.description}
+                                        onChange={handleChange}
+                                        placeholder="Enter department responsibilities..."
+                                        rows={4}
+                                    />
+                                </div>
+
+                                {error && (
+                                    <div
+                                        className="department-error"
+                                        role="alert"
+                                    >
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div className="department-modal-actions">
+                                    <button
+                                        type="button"
+                                        className="department-secondary-button"
+                                        onClick={closeModal}
+                                        disabled={saving}
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        className="department-primary-button"
+                                        disabled={saving}
+                                    >
+                                        {saving
+                                            ? "Saving..."
+                                            : editingDepartment
+                                                ? "Save Changes"
+                                                : "Save Department"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </AdminDashboard>
     );
 }
 

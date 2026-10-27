@@ -1,6 +1,12 @@
 
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+    UsersRound,
+    Building2,
+    UserCheck,
+    CalendarCheck
+} from "lucide-react";
 import api from "../services/api";
 import "../CSS/AdminDashboard.css";
 
@@ -49,7 +55,9 @@ function AdminDashboard({ children }) {
         "/reports": "Reports"
     }[location.pathname] || "Dashboard";
 
-    // Load employee and department statistics only on the dashboard.
+    const isActive = path => location.pathname === path;
+
+    // Load employee and department statistics.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -104,7 +112,7 @@ function AdminDashboard({ children }) {
         };
     }, [location.pathname]);
 
-    // Load today's attendance using Sri Lankan local date.
+    // Load today's attendance using Sri Lanka local date.
     useEffect(() => {
         if (location.pathname !== "/dashboard") return;
 
@@ -143,6 +151,7 @@ function AdminDashboard({ children }) {
                     ? response.data
                     : [];
 
+                // Count unique employees who checked in.
                 // Late arrivals count as present.
                 const employeeIdsPresent = new Set(
                     records
@@ -195,74 +204,111 @@ function AdminDashboard({ children }) {
 
     const recentEmployees = employees.slice(0, 5);
 
-    const isActive = path => location.pathname === path;
-
     return (
         <div className="dashboard">
             <aside className="sidebar">
-                <div className="sidebar-logo">
-                    Employee Management
-                </div>
+                <Link to="/dashboard" className="sidebar-brand">
+                    <img
+                        src="/WorkMateLogo.png"
+                        alt="WorkMate Logo"
+                        className="sidebar-brand-logo"
+                    />
+
+                    <div className="sidebar-brand-text">
+                        <span className="sidebar-brand-name">
+                            WorkMate
+                        </span>
+                        <span className="sidebar-brand-subtitle">
+                            Employee Management
+                        </span>
+                    </div>
+                </Link>
 
                 <nav className="sidebar-menu">
                     <Link
                         to="/dashboard"
                         className={isActive("/dashboard") ? "active" : ""}
                     >
-                        Dashboard
+                        <span className="nav-icon" aria-hidden="true">▦</span>
+                        <span>Dashboard</span>
                     </Link>
 
                     <Link
                         to="/employees"
                         className={isActive("/employees") ? "active" : ""}
                     >
-                        Employees
+                        <span className="nav-icon" aria-hidden="true">♙</span>
+                        <span>Employees</span>
                     </Link>
 
                     <Link
                         to="/departments"
                         className={isActive("/departments") ? "active" : ""}
                     >
-                        Departments
+                        <span className="nav-icon" aria-hidden="true">▤</span>
+                        <span>Departments</span>
                     </Link>
 
                     <Link
                         to="/attendance"
                         className={isActive("/attendance") ? "active" : ""}
                     >
-                        Attendance
+                        <span className="nav-icon" aria-hidden="true">◷</span>
+                        <span>Attendance</span>
                     </Link>
 
                     <Link
                         to="/admin-leave"
                         className={isActive("/admin-leave") ? "active" : ""}
                     >
-                        Leave Management
+                        <span className="nav-icon" aria-hidden="true">▣</span>
+                        <span>Leave Management</span>
                     </Link>
 
                     <Link
                         to="/reports"
                         className={isActive("/reports") ? "active" : ""}
                     >
-                        Reports
+                        <span className="nav-icon" aria-hidden="true">▥</span>
+                        <span>Reports</span>
                     </Link>
                 </nav>
+
+                <div className="sidebar-footer">
+                    <span className="sidebar-footer-dot" />
+                    <span>WorkMate HR System</span>
+                </div>
             </aside>
 
             <main className="dashboard-main">
                 <header className="dashboard-header">
-                    <h2>{currentPage}</h2>
+                    <div className="header-page-info">
+                        <span className="header-eyebrow">
+                            WORKMATE WORKSPACE
+                        </span>
+                        <h2>{currentPage}</h2>
+                    </div>
 
                     <div className="user-section">
-                        <span className="user-name">
-                            {displayName}
-                        </span>
+                        <div className="user-avatar" aria-hidden="true">
+                            {displayName.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div className="user-details">
+                            <span className="user-name">
+                                {displayName}
+                            </span>
+                            <span className="user-role">
+                                {user?.role || "User"}
+                            </span>
+                        </div>
 
                         <button
                             type="button"
                             className="logout-button"
                             onClick={logout}
                         >
+                            <span aria-hidden="true">↪</span>
                             Logout
                         </button>
                     </div>
@@ -272,68 +318,150 @@ function AdminDashboard({ children }) {
                     {children || (
                         <>
                             <div className="dashboard-welcome">
-                                <div>
-                                    <h1>Welcome to the Dashboard</h1>
+                                <div className="welcome-copy">
+                                    <span className="welcome-label">
+                                        YOUR WORKFORCE OVERVIEW
+                                    </span>
+
+                                    <h1>
+                                        Welcome back,{" "}
+                                        {displayName.split(" ")[0]}!
+                                    </h1>
+
                                     <p>
-                                        Here's an overview of your workforce.
+                                        Here's what's happening with your
+                                        workforce today.
                                     </p>
+                                </div>
+
+                                <div className="welcome-logo">
+                                    <img
+                                        src="/WorkMateLogo.png"
+                                        alt=""
+                                    />
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="dashboard-error" role="alert">
+                                <div
+                                    className="dashboard-error"
+                                    role="alert"
+                                >
                                     {error}
                                 </div>
                             )}
 
+                            <div className="dashboard-section-heading">
+                                <div>
+                                    <h2>Workforce Overview</h2>
+                                    <p>
+                                        Key employee and attendance
+                                        information at a glance.
+                                    </p>
+                                </div>
+                            </div>
+
                             <div className="dashboard-cards">
+                                {/* Total employees */}
                                 <div className="dashboard-card">
-                                    <div className="dashboard-card-icon employees-icon">
-                                        <span aria-hidden="true">👥</span>
+                                    <div className="dashboard-card-top">
+                                        <div className="dashboard-card-icon employees-icon">
+                                            <UsersRound
+                                                aria-hidden="true"
+                                                size={23}
+                                                strokeWidth={2}
+                                            />
+                                        </div>
+
+                                        <span className="card-label">
+                                            EMPLOYEES
+                                        </span>
                                     </div>
 
                                     <h3>Total Employees</h3>
-                                    <p>{loading ? "..." : employees.length}</p>
+
+                                    <p className="dashboard-card-value">
+                                        {loading ? "..." : employees.length}
+                                    </p>
 
                                     <span className="dashboard-card-note">
                                         All employee records
                                     </span>
                                 </div>
 
+                                {/* Departments */}
                                 <div className="dashboard-card">
-                                    <div className="dashboard-card-icon departments-icon">
-                                        <span aria-hidden="true">🏢</span>
+                                    <div className="dashboard-card-top">
+                                        <div className="dashboard-card-icon departments-icon">
+                                            <Building2
+                                                aria-hidden="true"
+                                                size={23}
+                                                strokeWidth={2}
+                                            />
+                                        </div>
+
+                                        <span className="card-label">
+                                            ORGANISATION
+                                        </span>
                                     </div>
 
                                     <h3>Departments</h3>
-                                    <p>{loading ? "..." : departmentCount}</p>
+
+                                    <p className="dashboard-card-value">
+                                        {loading ? "..." : departmentCount}
+                                    </p>
 
                                     <span className="dashboard-card-note">
                                         Registered departments
                                     </span>
                                 </div>
 
+                                {/* Active employees */}
                                 <div className="dashboard-card">
-                                    <div className="dashboard-card-icon active-icon">
-                                        <span aria-hidden="true">✓</span>
+                                    <div className="dashboard-card-top">
+                                        <div className="dashboard-card-icon active-icon">
+                                            <UserCheck
+                                                aria-hidden="true"
+                                                size={25}
+                                                strokeWidth={2}
+                                            />
+                                        </div>
+
+                                        <span className="card-label">
+                                            CURRENT STATUS
+                                        </span>
                                     </div>
 
                                     <h3>Active Employees</h3>
-                                    <p>{loading ? "..." : activeEmployees}</p>
+
+                                    <p className="dashboard-card-value">
+                                        {loading ? "..." : activeEmployees}
+                                    </p>
 
                                     <span className="dashboard-card-note">
                                         Employees with active status
                                     </span>
                                 </div>
 
+                                {/* Today's attendance */}
                                 <div className="dashboard-card">
-                                    <div className="dashboard-card-icon attendance-icon">
-                                        <span aria-hidden="true">👥</span>
+                                    <div className="dashboard-card-top">
+                                        <div className="dashboard-card-icon attendance-icon">
+                                            <CalendarCheck
+                                                aria-hidden="true"
+                                                size={23}
+                                                strokeWidth={2}
+                                            />
+                                        </div>
+
+                                        <span className="card-label">
+                                            TODAY
+                                        </span>
                                     </div>
 
                                     <h3>Today's Attendance</h3>
 
-                                    <p>
+                                    <p className="dashboard-card-value">
                                         {attendanceLoading
                                             ? "..."
                                             : attendanceError
@@ -353,8 +481,8 @@ function AdminDashboard({ children }) {
                                     <div>
                                         <h2>Recent Employees</h2>
                                         <p>
-                                            The latest employee records in your
-                                            system.
+                                            The latest employee records in
+                                            your system.
                                         </p>
                                     </div>
 
@@ -362,7 +490,8 @@ function AdminDashboard({ children }) {
                                         to="/employees"
                                         className="dashboard-view-all"
                                     >
-                                        View All →
+                                        View All
+                                        <span aria-hidden="true"> →</span>
                                     </Link>
                                 </div>
 
@@ -398,17 +527,31 @@ function AdminDashboard({ children }) {
                                                 </tr>
                                             ) : (
                                                 recentEmployees.map(employee => (
-                                                    <tr key={employee.employee_id}>
+                                                    <tr
+                                                        key={employee.employee_id}
+                                                    >
                                                         <td>
                                                             <div className="dashboard-employee">
-                                                                <strong>
-                                                                    {employee.first_name}{" "}
-                                                                    {employee.last_name}
-                                                                </strong>
+                                                                <div
+                                                                    className="employee-avatar"
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    {(
+                                                                        employee.first_name ||
+                                                                        "?"
+                                                                    ).charAt(0).toUpperCase()}
+                                                                </div>
 
-                                                                <span>
-                                                                    {employee.employee_code}
-                                                                </span>
+                                                                <div className="employee-info">
+                                                                    <strong>
+                                                                        {employee.first_name}{" "}
+                                                                        {employee.last_name}
+                                                                    </strong>
+
+                                                                    <span>
+                                                                        {employee.employee_code}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </td>
 
@@ -418,7 +561,8 @@ function AdminDashboard({ children }) {
                                                         </td>
 
                                                         <td>
-                                                            {employee.job_title || "—"}
+                                                            {employee.job_title ||
+                                                                "—"}
                                                         </td>
 
                                                         <td>

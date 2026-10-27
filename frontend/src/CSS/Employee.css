@@ -1,43 +1,65 @@
 
 /* Employee page layout */
 
-.page {
+.page.employee-page {
     box-sizing: border-box;
     width: 100%;
+    min-width: 0;
     padding: 30px;
     color: #1f2937;
 }
 
-.page-header {
+/* Title banner matching Attendance and Leave Requests */
+
+.employee-hero {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    margin-bottom: 25px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 30px 34px;
+    margin: 0 0 28px;
+    border: 1px solid #dce8f7;
+    border-radius: 20px;
+    background: linear-gradient(110deg, #f4f8ff 0%, #eef8f7 100%);
 }
 
-.page-header h1 {
-    margin-bottom: 6px;
-    color: #111827;
-    font-size: 26px;
+.employee-hero-text {
+    min-width: 0;
 }
 
-.page-header p {
-    color: #6b7280;
+.employee-hero h1 {
+    margin: 0 0 12px;
+    color: #12345b;
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.employee-hero p {
+    margin: 0;
+    color: #58708f;
     font-size: 14px;
+    line-height: 1.6;
 }
 
 /* Buttons */
 
 .primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     padding: 10px 16px;
     border: 1px solid #2563eb;
-    border-radius: 6px;
-    background: #2563eb;
+    border-radius: 7px;
+    background: #2861ed;
     color: #fff;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
     transition: background 0.2s ease;
 }
@@ -94,15 +116,15 @@
 }
 
 .table-container thead {
-    background: #f9fafb;
+    background: #f8fafc;
 }
 
 .table-container th {
     padding: 15px 18px;
     border-bottom: 1px solid #e5e7eb;
-    color: #6b7280;
+    color: #52627a;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     text-align: left;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -111,13 +133,14 @@
 
 .table-container td {
     padding: 16px 18px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #edf1f6;
     color: #374151;
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .table-container tbody tr:hover {
-    background: #f9fafb;
+    background: #fafcff;
 }
 
 .table-container tbody tr:last-child td {
@@ -176,7 +199,7 @@
     color: #991b1b;
 }
 
-/* Add/Edit Employee popup */
+/* Add/Edit Employee and Login Account modals */
 
 .modal-overlay {
     position: fixed;
@@ -224,6 +247,7 @@
     margin: 0;
     color: #6b7280;
     font-size: 14px;
+    line-height: 1.5;
 }
 
 .modal-close {
@@ -359,16 +383,40 @@
     background: #fee2e2;
 }
 
+.account-icon:hover {
+    border-color: #bbf7d0;
+    background: #dcfce7;
+}
+
 /* Responsive layout */
 
+@media (max-width: 900px) {
+    .page.employee-page {
+        padding: 24px;
+    }
+
+    .employee-hero {
+        padding: 26px;
+    }
+}
+
 @media (max-width: 600px) {
-    .page {
+    .page.employee-page {
         padding: 18px;
     }
 
-    .page-header {
+    .employee-hero {
         align-items: flex-start;
         flex-direction: column;
+        padding: 24px;
+    }
+
+    .employee-hero h1 {
+        font-size: 28px;
+    }
+
+    .employee-hero .primary-button {
+        align-self: flex-start;
     }
 
     .employee-toolbar input {
@@ -390,5 +438,9 @@
 
     .full-width {
         grid-column: auto;
+    }
+
+    .modal-actions {
+        flex-wrap: wrap;
     }
 }
