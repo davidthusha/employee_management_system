@@ -1,5 +1,16 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+    CircleCheck,
+    AlarmClock,
+    CircleX,
+    CalendarDays,
+    LayoutDashboard,
+    UserRound,
+    CalendarCheck
+} from "lucide-react";
+
 import api from "../services/api";
 import "../CSS/AdminDashboard.css";
 
@@ -211,6 +222,29 @@ function EmployeeAttendance() {
         navigate("/", { replace: true });
     };
 
+    const navigationItems = [
+        {
+            label: "Dashboard",
+            path: "/employee-portal",
+            Icon: LayoutDashboard
+        },
+        {
+            label: "My Profile",
+            path: "/employee-profile",
+            Icon: UserRound
+        },
+        {
+            label: "My Attendance",
+            path: "/employee-attendance",
+            Icon: CalendarCheck
+        },
+        {
+            label: "Leave Management",
+            path: "/employee-leave",
+            Icon: CalendarDays
+        }
+    ];
+
     return (
         <div className="dashboard">
             <aside className="sidebar">
@@ -219,49 +253,21 @@ function EmployeeAttendance() {
                 </div>
 
                 <nav className="sidebar-menu">
-                    <Link
-                        to="/employee-portal"
-                        className={
-                            location.pathname === "/employee-portal"
-                                ? "active"
-                                : ""
-                        }
-                    >
-                        Dashboard
-                    </Link>
+                    {navigationItems.map(({ label, path, Icon }) => (
+                        <Link
+                            key={path}
+                            to={path}
+                            className={
+                                location.pathname === path ? "active" : ""
+                            }
+                        >
+                            <span className="nav-icon" aria-hidden="true">
+                                <Icon size={18} strokeWidth={1.9} />
+                            </span>
 
-                    <Link
-                        to="/employee-profile"
-                        className={
-                            location.pathname === "/employee-profile"
-                                ? "active"
-                                : ""
-                        }
-                    >
-                        My Profile
-                    </Link>
-
-                    <Link
-                        to="/employee-attendance"
-                        className={
-                            location.pathname === "/employee-attendance"
-                                ? "active"
-                                : ""
-                        }
-                    >
-                        My Attendance
-                    </Link>
-
-                    <Link
-                        to="/employee-leave"
-                        className={
-                            location.pathname === "/employee-leave"
-                                ? "active"
-                                : ""
-                        }
-                    >
-                        Leave Management
-                    </Link>
+                            <span>{label}</span>
+                        </Link>
+                    ))}
                 </nav>
             </aside>
 
@@ -307,6 +313,7 @@ function EmployeeAttendance() {
                         </div>
                     )}
 
+                    {/* Today's attendance */}
                     <div className="dashboard-recent attendance-action-panel">
                         <div className="dashboard-section-header">
                             <div>
@@ -399,11 +406,17 @@ function EmployeeAttendance() {
                         </div>
                     </div>
 
+                    {/* Attendance statistics with Lucide icons */}
                     <div className="dashboard-cards attendance-summary">
                         <div className="dashboard-card">
                             <div className="dashboard-card-icon active-icon">
-                                ✓
+                                <CircleCheck
+                                    size={23}
+                                    strokeWidth={2}
+                                    aria-hidden="true"
+                                />
                             </div>
+
                             <h3>Present Days</h3>
                             <p>
                                 {loading ? "..." : countPresentDays()}
@@ -415,8 +428,13 @@ function EmployeeAttendance() {
 
                         <div className="dashboard-card">
                             <div className="dashboard-card-icon attendance-icon">
-                                ⏰
+                                <AlarmClock
+                                    size={23}
+                                    strokeWidth={2}
+                                    aria-hidden="true"
+                                />
                             </div>
+
                             <h3>Late Arrivals</h3>
                             <p>
                                 {loading ? "..." : countLateArrivals()}
@@ -428,8 +446,13 @@ function EmployeeAttendance() {
 
                         <div className="dashboard-card">
                             <div className="dashboard-card-icon departments-icon">
-                                ✕
+                                <CircleX
+                                    size={23}
+                                    strokeWidth={2}
+                                    aria-hidden="true"
+                                />
                             </div>
+
                             <h3>Absent Days</h3>
                             <p>
                                 {loading ? "..." : countStatus("Absent")}
@@ -441,8 +464,13 @@ function EmployeeAttendance() {
 
                         <div className="dashboard-card">
                             <div className="dashboard-card-icon job-title-icon">
-                                📴
+                                <CalendarDays
+                                    size={23}
+                                    strokeWidth={2}
+                                    aria-hidden="true"
+                                />
                             </div>
+
                             <h3>Leave Days</h3>
                             <p>
                                 {loading ? "..." : countStatus("Leave")}
@@ -453,6 +481,7 @@ function EmployeeAttendance() {
                         </div>
                     </div>
 
+                    {/* Attendance history */}
                     <div className="dashboard-recent">
                         <div className="dashboard-section-header">
                             <div>

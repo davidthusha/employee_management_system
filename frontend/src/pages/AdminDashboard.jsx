@@ -2,8 +2,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+    LayoutDashboard,
     UsersRound,
     Building2,
+    Clock,
+    CalendarDays,
+    ChartNoAxesColumn,
     UserCheck,
     CalendarCheck
 } from "lucide-react";
@@ -229,7 +233,7 @@ function AdminDashboard({ children }) {
                         to="/dashboard"
                         className={isActive("/dashboard") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">▦</span>
+                        <span className="nav-icon" aria-hidden="true"><LayoutDashboard size={18} /></span>
                         <span>Dashboard</span>
                     </Link>
 
@@ -237,7 +241,7 @@ function AdminDashboard({ children }) {
                         to="/employees"
                         className={isActive("/employees") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">♙</span>
+                        <span className="nav-icon" aria-hidden="true"><UsersRound size={18} /></span>
                         <span>Employees</span>
                     </Link>
 
@@ -245,7 +249,7 @@ function AdminDashboard({ children }) {
                         to="/departments"
                         className={isActive("/departments") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">▤</span>
+                        <span className="nav-icon" aria-hidden="true"><Building2 size={18} /></span>
                         <span>Departments</span>
                     </Link>
 
@@ -253,7 +257,7 @@ function AdminDashboard({ children }) {
                         to="/attendance"
                         className={isActive("/attendance") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">◷</span>
+                        <span className="nav-icon" aria-hidden="true"><Clock size={18} /></span>
                         <span>Attendance</span>
                     </Link>
 
@@ -261,7 +265,7 @@ function AdminDashboard({ children }) {
                         to="/admin-leave"
                         className={isActive("/admin-leave") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">▣</span>
+                        <span className="nav-icon" aria-hidden="true"><CalendarDays size={18} /></span>
                         <span>Leave Management</span>
                     </Link>
 
@@ -269,7 +273,7 @@ function AdminDashboard({ children }) {
                         to="/reports"
                         className={isActive("/reports") ? "active" : ""}
                     >
-                        <span className="nav-icon" aria-hidden="true">▥</span>
+                        <span className="nav-icon" aria-hidden="true"><ChartNoAxesColumn size={18} /></span>
                         <span>Reports</span>
                     </Link>
                 </nav>

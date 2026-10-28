@@ -8,28 +8,26 @@ import {
 
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import Employees from "./pages/Employee";
 import Departments from "./pages/Departments";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
-import EmployeeAttendance from "./pages/EmployeeAttendance";
 import AdminAttendance from "./pages/AdminAttendance";
-import EmployeeProfile from "./pages/EmployeeProfile";
-import EmployeeLeave from "./pages/EmployeeLeave";
 import AdminLeave from "./pages/AdminLeave";
 import AdminReports from "./pages/AdminReports";
+
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeAttendance from "./pages/EmployeeAttendance";
+import EmployeeProfile from "./pages/EmployeeProfile";
+import EmployeeLeave from "./pages/EmployeeLeave";
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Login page */}
-                <Route
-                    path="/"
-                    element={<Login />}
-                />
+                <Route path="/" element={<Login />} />
 
-                {/* Admin dashboard */}
+                {/* Admin pages */}
                 <Route
                     path="/dashboard"
                     element={
@@ -39,61 +37,62 @@ function App() {
                     }
                 />
 
-                {/* Employee management */}
                 <Route
                     path="/employees"
                     element={
                         <ProtectedRoute allowedRoles={["Admin"]}>
-                             <AdminDashboard>
+                            <AdminDashboard>
                                 <Employees />
                             </AdminDashboard>
                         </ProtectedRoute>
                     }
                 />
 
-                {/* Department management */}
                 <Route
                     path="/departments"
                     element={
                         <ProtectedRoute allowedRoles={["Admin"]}>
-                                <Departments />
-                        </ProtectedRoute>
-                    }
-                />
-
-                {/* Admin attendance */}
-                <Route
-                    path="/attendance"
-                    element={
-                        <ProtectedRoute allowedRoles={["Admin"]}>
-                            <AdminAttendance />
-                        </ProtectedRoute>
-                    }
-                />
-
-                {/* Admin leave management */}
-                <Route
-                    path="/admin-leave"
-                    element={
-                        <ProtectedRoute allowedRoles={["Admin"]}>
-                            <AdminLeave />
-                        </ProtectedRoute>
-                    }
-                />
-
-                {/* Admin reports */}
-                <Route
-                    path="/reports"
-                    element={
-                        <ProtectedRoute allowedRoles={["Admin"]}>
                             <AdminDashboard>
-                            <AdminReports />
+                                <Departments />
                             </AdminDashboard>
                         </ProtectedRoute>
                     }
                 />
 
-                {/* Employee portal */}
+                <Route
+                    path="/attendance"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminDashboard>
+                                <AdminAttendance />
+                            </AdminDashboard>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin-leave"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminDashboard>
+                                <AdminLeave />
+                            </AdminDashboard>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/reports"
+                    element={
+                        <ProtectedRoute allowedRoles={["Admin"]}>
+                            <AdminDashboard>
+                                <AdminReports />
+                            </AdminDashboard>
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Employee pages: one shared employee layout */}
                 <Route
                     path="/employee-portal"
                     element={
@@ -103,37 +102,39 @@ function App() {
                     }
                 />
 
-                {/* Employee profile */}
                 <Route
                     path="/employee-profile"
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
-                            <EmployeeProfile />
+                            <EmployeeDashboard>
+                                <EmployeeProfile />
+                            </EmployeeDashboard>
                         </ProtectedRoute>
                     }
                 />
 
-                {/* Employee attendance */}
                 <Route
                     path="/employee-attendance"
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
-                            <EmployeeAttendance />
+                            <EmployeeDashboard>
+                                <EmployeeAttendance />
+                            </EmployeeDashboard>
                         </ProtectedRoute>
                     }
                 />
 
-                {/* Employee leave */}
                 <Route
                     path="/employee-leave"
                     element={
                         <ProtectedRoute allowedRoles={["Employee"]}>
-                            <EmployeeLeave />
+                            <EmployeeDashboard>
+                                <EmployeeLeave />
+                            </EmployeeDashboard>
                         </ProtectedRoute>
                     }
                 />
 
-                {/* Unknown routes */}
                 <Route
                     path="*"
                     element={<Navigate to="/" replace />}
