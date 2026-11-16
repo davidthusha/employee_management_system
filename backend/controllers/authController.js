@@ -1,0 +1,292 @@
+
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const pool = require("../config/db");
+
+// LOGIN — Admin and Employee
+const login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (
+            typeof username !== "string" ||
+            typeof password !== "string" ||
+            username.length === 0 ||
+            password.length === 0
+        ) {
+            return res.status(400).json({
+                message: "Username and password are required"
+            });
+        }
+
+        // Exact, case-sensitive username comparison.
+        // Do not trim or change the username.
+        const [users] = await pool.query(
+            `
+            SELECT
+                u.user_id,
+                u.employee_id,
+                u.username,
+                u.password_hash,
+                u.role,
+                e.first_name,
+                e.last_name
+            FROM users u
+            LEFT JOIN employees e
+                ON u.employee_id = e.employee_id
+            WHERE BINARY u.username = BINARY ?
+            LIMIT 1
+            `,
+            [username]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({
+                message: "Invalid username or password"
+            });
+        }
+
+        const user = users[0];
+
+        // Password comparison remains case-sensitive.
+        const passwordMatch = await bcrypt.compare(
+            password,
+            user.password_hash
+        );
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                message: "Invalid username or password"
+            });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            console.error("JWT_SECRET is not configured");
+
+            return res.status(500).json({
+                message: "Authentication is not configured correctly"
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                user_id: user.user_id,
+                employee_id: user.employee_id,
+                username: user.username,
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || ""
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "1h"
+            }
+        );
+
+        return res.json({
+            message: "Login successful",
+            token,
+            user: {
+                user_id: user.user_id,
+                employee_id: user.employee_id,
+                username: user.username,
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || ""
+            }
+        });
+
+    } catch (error) {
+        console.error("Login error:", error);
+
+        return res.status(500).json({
+            message: "Login failed"
+        });
+    }
+};
+
+
+// CREATE LOGIN ACCOUNT FOR AN EXISTING EMPLOYEE
+const createEmployeeAccount = async (req, res) => {
+    try {
+        const { employee_id, username, password } = req.body;
+
+        if (
+            employee_id === undefined ||
+            employee_id === null ||
+            !username ||
+            !password
+        ) {
+            return res.status(400).json({
+                message: "Employee, username and password are required"
+            });
+        }
+
+        const cleanUsername = String(username).trim();
+
+        if (cleanUsername.length < 3 || cleanUsername.length > 50) {
+            return res.status(400).json({
+                message: "Username must contain 3 to 50 characters"
+            });
+        }
+
+        if (typeof password !== "string" || password.length < 8) {
+            return res.status(400).json({
+                message: "Password must contain at least 8 characters"
+            });
+        }
+
+        const employeeId = Number(employee_id);
+
+        if (!Number.isInteger(employeeId) || employeeId <= 0) {
+            return res.status(400).json({
+                message: "Invalid employee ID"
+            });
+        }
+
+        // Verify employee exists
+        const [employees] = await pool.query(
+            `
+            SELECT employee_id
+            FROM employees
+            WHERE employee_id = ?
+            LIMIT 1
+            `,
+            [employeeId]
+        );
+
+        if (employees.length === 0) {
+            return res.status(404).json({
+                message: "Employee not found"
+            });
+        }
+
+        // Prevent multiple accounts for the same employee
+        const [existingAccounts] = await pool.query(
+            `
+            SELECT user_id
+            FROM users
+            WHERE employee_id = ?
+            LIMIT 1
+            `,
+            [employeeId]
+        );
+
+        if (existingAccounts.length > 0) {
+            return res.status(409).json({
+                message: "This employee already has a login account"
+            });
+        }
+
+        // Hash the password before storing it
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        // Create an Employee account
+        const [result] = await pool.query(
+            `
+            INSERT INTO users (
+                employee_id,
+                username,
+                password_hash,
+                role
+            )
+            VALUES (?, ?, ?, 'Employee')
+            `,
+            [
+                employeeId,
+                cleanUsername,
+                passwordHash
+            ]
+        );
+
+        return res.status(201).json({
+            message: "Employee login account created successfully",
+            user_id: result.insertId,
+            employee_id: employeeId,
+            username: cleanUsername,
+            role: "Employee"
+        });
+
+    } catch (error) {
+        console.error("Create employee account error:", error);
+
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({
+                message: "Username or employee account already exists"
+            });
+        }
+
+        return res.status(500).json({
+            message: "Failed to create employee login account"
+        });
+    }
+};
+
+
+// GET CURRENT LOGGED-IN USER
+const getCurrentUser = async (req, res) => {
+    try {
+        const userId = req.user?.user_id;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: "Authentication required"
+            });
+        }
+
+        const [users] = await pool.query(
+            `
+            SELECT
+                u.user_id,
+                u.employee_id,
+                u.username,
+                u.role,
+                e.first_name,
+                e.last_name
+            FROM users u
+            LEFT JOIN employees e
+                ON u.employee_id = e.employee_id
+            WHERE u.user_id = ?
+            LIMIT 1
+            `,
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                message: "User account not found"
+            });
+        }
+
+        const user = users[0];
+
+        return res.json({
+            user: {
+                user_id: user.user_id,
+                employee_id: user.employee_id,
+                username: user.username,
+                role: user.role,
+                first_name: user.first_name || "",
+                last_name: user.last_name || "",
+                display_name:
+                    [user.first_name, user.last_name]
+                        .filter(Boolean)
+                        .join(" ") ||
+                    (user.role === "Admin" ? "Administrator" : user.username)
+            }
+        });
+
+    } catch (error) {
+        console.error("Get current user error:", error);
+
+        return res.status(500).json({
+            message: "Failed to retrieve current user"
+        });
+    }
+};
+
+module.exports = {
+    login,
+    createEmployeeAccount,
+    getCurrentUser
+};

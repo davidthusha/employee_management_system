@@ -1,0 +1,122 @@
+.employee-profile-layout {
+    min-height: 100vh;
+}
+
+.employee-profile-panel {
+    margin-bottom: 24px;
+}
+
+.employee-profile-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    padding: 24px;
+}
+
+.employee-profile-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.employee-profile-form input,
+.employee-profile-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #111827;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.employee-profile-form input {
+    min-height: 42px;
+}
+
+.employee-profile-form textarea {
+    resize: vertical;
+}
+
+.employee-profile-form input:focus,
+.employee-profile-form textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.employee-profile-form input[readonly] {
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: default;
+}
+
+.employee-profile-full-width {
+    grid-column: 1 / -1;
+}
+
+.employee-profile-actions {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+}
+
+.employee-profile-actions button {
+    min-height: 40px;
+}
+
+.employee-profile-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.employee-profile-help {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.employee-profile-success {
+    margin-bottom: 20px;
+    padding: 13px 16px;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #065f46;
+    font-size: 14px;
+}
+
+.employee-profile-password-error {
+    margin: 20px 24px 0;
+}
+
+.employee-profile-loading {
+    padding: 30px 24px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+@media (max-width: 700px) {
+    .employee-profile-form {
+        grid-template-columns: 1fr;
+        padding: 18px;
+        gap: 16px;
+    }
+
+    .employee-profile-full-width {
+        grid-column: auto;
+    }
+
+    .employee-profile-password-error {
+        margin: 18px 18px 0;
+    }
+}

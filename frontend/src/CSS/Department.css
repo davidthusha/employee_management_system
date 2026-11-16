@@ -1,0 +1,454 @@
+
+/* Main page */
+
+.departments-page {
+    width: 100%;
+    min-width: 0;
+    padding: 30px;
+    box-sizing: border-box;
+    color: #1f2937;
+}
+
+/* Page title banner - matches Attendance and Leave Requests */
+
+.department-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    width: 100%;
+    box-sizing: border-box;
+    padding: 30px 34px;
+    margin: 0 0 28px;
+
+    border: 1px solid #dce8f7;
+    border-radius: 20px;
+
+    background: linear-gradient(
+        110deg,
+        #f4f8ff 0%,
+        #eef8f7 100%
+    );
+}
+
+.department-hero-text {
+    min-width: 0;
+}
+
+.department-hero h1 {
+    margin: 0 0 12px;
+    color: #12345b;
+    font-size: 34px;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.department-hero p {
+    margin: 0;
+    color: #58708f;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Buttons */
+
+.department-primary-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+
+    padding: 11px 18px;
+    border: none;
+    border-radius: 7px;
+
+    background: #2861ed;
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.department-primary-button:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.department-primary-button:disabled,
+.department-secondary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.department-secondary-button {
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+
+    background: #ffffff;
+    color: #374151;
+
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.department-secondary-button:hover:not(:disabled) {
+    background: #f9fafb;
+}
+
+/* Optional summary cards */
+
+.departments-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 260px));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.department-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    padding: 22px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.department-summary-card span {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.department-summary-card strong {
+    color: #111827;
+    font-size: 30px;
+}
+
+/* Department table card */
+
+.departments-table-card {
+    width: 100%;
+    overflow: hidden;
+
+    border: 1px solid #e0e5ed;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.departments-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 18px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.departments-toolbar input {
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+
+    color: #1f2937;
+    background: #ffffff;
+    font-size: 14px;
+}
+
+.departments-toolbar input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.departments-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.departments-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+}
+
+.departments-table thead {
+    background: #f8fafc;
+}
+
+.departments-table th {
+    padding: 15px 18px;
+    border-bottom: 1px solid #e0e5ed;
+
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.departments-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf1f6;
+
+    color: #334155;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.departments-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.departments-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.department-name-cell {
+    color: #111827 !important;
+    font-weight: 600;
+}
+
+.department-empty {
+    padding: 35px !important;
+    color: #6b7280 !important;
+    text-align: center;
+}
+
+/* Edit and delete buttons */
+
+.department-actions {
+    white-space: nowrap;
+}
+
+.department-icon-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 34px;
+    height: 34px;
+    margin-right: 6px;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s ease;
+}
+
+.department-edit-button:hover {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+}
+
+.department-delete-button:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+/* Success and error messages */
+
+.department-success,
+.department-error {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    border-radius: 7px;
+
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.department-success {
+    border: 1px solid #86efac;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.department-error {
+    border: 1px solid #fca5a5;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Department modal overlay */
+
+.department-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.department-modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+
+    padding: 28px;
+    border-radius: 12px;
+
+    background: #ffffff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.department-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.department-modal-header h2 {
+    margin: 0 0 7px;
+    color: #111827;
+    font-size: 22px;
+}
+
+.department-modal-header p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.department-modal-close {
+    flex-shrink: 0;
+    padding: 0 4px;
+
+    border: none;
+    background: transparent;
+    color: #6b7280;
+
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.department-modal-close:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Department form */
+
+.department-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.department-form-field label {
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.department-form-field input,
+.department-form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+
+    color: #1f2937;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+}
+
+.department-form-field textarea {
+    resize: vertical;
+}
+
+.department-form-field input:focus,
+.department-form-field textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Modal actions */
+
+.department-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive layout */
+
+@media (max-width: 900px) {
+    .departments-page {
+        padding: 24px;
+    }
+
+    .department-hero {
+        padding: 26px;
+    }
+}
+
+@media (max-width: 600px) {
+    .departments-page {
+        padding: 18px;
+    }
+
+    .department-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 24px;
+    }
+
+    .department-hero h1 {
+        font-size: 28px;
+    }
+
+    .department-hero .department-primary-button {
+        align-self: flex-start;
+    }
+
+    .departments-toolbar {
+        padding: 14px;
+    }
+
+    .departments-toolbar input {
+        max-width: 100%;
+    }
+
+    .department-modal {
+        padding: 20px;
+    }
+
+    .department-modal-actions {
+        flex-wrap: wrap;
+    }
+}
